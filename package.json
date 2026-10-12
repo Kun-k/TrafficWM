@@ -1,0 +1,11 @@
+{
+  "name": "trafficwm-ui-tests",
+  "private": true,
+  "scripts": {
+    "test:ui": "playwright test GUI/tests/denseworld.spec.js GUI/tests/platform.spec.js --workers=1",
+    "test:platform": "playwright test GUI/tests/platform.spec.js --workers=1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "trafficwm.appearance-anchor-catalog.v1",
+  "maps": [
+    {
+      "map_suffix": "assets/map/map_tianjin_part_5type_rebuild.pkl",
+      "anchors": [
+        {
+          "id": "tianjin_signalized_urban_east",
+          "x": 691.4522569250514,
+          "y": -910.9135364969638,
+          "heading": 1.1529925965623047,
+          "image": "tianjin_signalized_urban_east.png",
+          "control": "tianjin_signalized_urban_east_control.mp4",
+          "control_semantics": "trafficwm-rds-hq-sparse-lanes-v2",
+          "camera_calibration": "rds-hq-official-backward-ftheta-v1",
+          "control_reference_experiment": "20260813_080546_1ecf7716",
+          "max_position_error_m": 3.0,
+          "max_heading_error_deg": 8.0
+        },
+        {
+          "id": "tianjin_tree_lined_arterial",
+          "x": 127.92821397229764,
+          "y": -1150.5915711051555,
+          "heading": -0.375181366959643,
+          "image": "tianjin_tree_lined_arterial.png",
+          "control": "tianjin_tree_lined_arterial_control.mp4",
+          "max_position_error_m": 3.0,
+          "max_heading_error_deg": 8.0
+        }
+      ]
+    }
+  ]
+}

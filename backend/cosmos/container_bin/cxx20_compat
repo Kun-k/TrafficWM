@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+args=()
+for arg in "$@"; do
+  if [[ "$arg" == "-std=c++20" ]]; then
+    arg="-std=c++2a"
+  fi
+  args+=("$arg")
+done
+exec /usr/bin/c++ "${args[@]}"

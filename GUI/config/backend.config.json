@@ -1,0 +1,15 @@
+{
+    "backend": {
+        "protocol": "http",
+        "host": "127.0.0.1",
+        "port": 8890,
+        "statusPath": "/status",
+        "actionPath": "/action",
+        "mapsPath": "/maps",
+        "scenariosPath": "/scenarios",
+        "dataRecordsPath": "/data/scenarios",
+        "dataActionPath": "/data/action",
+        "framePath": "/frame.jpg",
+        "requestTimeoutMs": 4000
+    }
+}

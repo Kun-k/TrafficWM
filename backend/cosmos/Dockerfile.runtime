@@ -1,0 +1,12 @@
+FROM cosmos-transfer25:cu128
+
+RUN sed -i \
+      -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.aliyun.com/ubuntu#g' \
+      -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.aliyun.com/ubuntu#g' \
+      /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      libegl1 libgl1 libglx0 libopengl0; \
+    rm -rf /var/lib/apt/lists/*; \
+    chmod o+rx /root /root/.local /root/.local/share /root/.local/share/uv; \
+    chmod -R a+rX /root/.local/share/uv/python

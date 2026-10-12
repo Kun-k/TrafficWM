@@ -1,0 +1,31 @@
+network:
+  ssl:
+    pem_certificate: ${HOME}/.vnc/self.pem
+    pem_key: ${HOME}/.vnc/self.pem
+  udp:
+    public_ip: 127.0.0.1
+
+runtime_configuration:
+  allow_override_standard_vnc_server_settings: true
+  allow_override_list:
+    - pointer.enabled
+
+encoding:
+  max_frame_rate: 30
+  rect_encoding_mode:
+    min_quality: 5
+    max_quality: 8
+    consider_lossless_quality: 10
+    rectangle_compress_threads: 4
+  video_encoding_mode:
+    jpeg_quality: -1
+    webp_quality: -1
+    max_resolution:
+      width: 1920
+      height: 1080
+    enter_video_encoding_mode:
+      time_threshold: 1
+      area_threshold: 35%
+    exit_video_encoding_mode:
+      time_threshold: 2
+  compare_framebuffer: auto

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == hf || "${1:-}" == hf\>* || "${1:-}" == hf=* ]]; then
+  shift
+  if [[ "${1:-}" != download || "$#" -lt 2 ]]; then
+    exec /workspace/.venv/bin/hf "$@"
+  fi
+  shift
+  repository="$1"
+  shift
+  files=()
+  options=()
+  while (( "$#" )); do
+    case "$1" in
+      --repo-type|--revision|--cache-dir|--local-dir|--token|--max-workers)
+        options+=("$1" "${2:-}")
+        shift 2
+        ;;
+      --include|--exclude)
+        options+=("$1")
+        shift
+        while (( "$#" )) && [[ "$1" != --* ]]; do
+          options+=("$1")
+          shift
+        done
+        ;;
+      --*)
+        options+=("$1")
+        shift
+        ;;
+      *)
+        files+=("$1")
+        shift
+        ;;
+    esac
+  done
+  exec /workspace/.venv/bin/hf download "$repository" "${files[@]}" "${options[@]}"
+fi
+
+exec /usr/local/bin/uvx "$@"

@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DenseWorld-Drive 智能驾驶测试平台</title>
+    <script>document.documentElement.dataset.initialView = new URLSearchParams(location.search).get('view') || 'home';</script>
+    <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.css">
+    <link rel="stylesheet" href="vendor/noto-sans-sc/font.css">
+    <link rel="stylesheet" href="styles.css?v=20260826-matrix3">
+    <script src="vendor/chartjs/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="platform-sidebar" id="platformSidebar">
+    <div class="platform-brand">
+      <span class="platform-brand-mark">DW</span>
+      <span class="platform-brand-copy">
+        <b>DenseWorld-Drive</b>
+        <small>智能驾驶测试平台</small>
+      </span>
+      <button id="platformSidebarToggle" type="button" class="platform-sidebar-toggle" title="收起左侧栏" aria-label="收起左侧栏" aria-expanded="true">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </div>
+    <nav class="module-nav" aria-label="module-navigation">
+      <button type="button" class="module-nav-btn active" data-app-mode="home">
+        <i class="bi bi-grid-1x2-fill"></i><span>运营控制台</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="tasks">
+        <i class="bi bi-clipboard2-check-fill"></i><span>测试任务管理</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="workflow">
+        <i class="bi bi-diagram-3-fill"></i><span>测试流程编排</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="experiments">
+        <i class="bi bi-activity"></i><span data-i18n="nav.experiments">实验管理</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="data">
+        <i class="bi bi-database-fill"></i><span data-i18n="nav.data">数据管理</span>
+      </button>
+      <span class="module-nav-label" hidden>运行工具</span>
+      <button type="button" class="module-nav-btn" data-app-mode="generate" hidden>
+        <i class="bi bi-play-circle-fill"></i><span data-i18n="nav.generate">场景生成</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="replay" hidden>
+        <i class="bi bi-camera-reels-fill"></i><span data-i18n="nav.replay">场景回放</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="offline" hidden>
+        <i class="bi bi-cpu-fill"></i><span data-i18n="nav.offline">离线测试</span>
+      </button>
+      <button type="button" class="module-nav-btn" data-app-mode="security" data-admin-only data-user-management hidden>
+        <i class="bi bi-shield-lock-fill"></i><span data-i18n="nav.security">用户与安全</span>
+      </button>
+    </nav>
+    <div class="platform-sidebar-foot">
+      <div class="platform-health"><i></i><span><b>本地平台</b><small>服务状态实时更新</small></span></div>
+      <div class="platform-profile"><span>OP</span><b>Operator</b><small>内部运行模式</small></div>
+    </div>
+  </aside>
+
+  <!-- ── Top Bar ── -->
+  <header class="app-topbar">
+    <div class="brand-group">
+      <i class="bi bi-chevron-right"></i>
+      <div>
+        <h1 id="currentSectionTitle">运营控制台</h1>
+        <p>任务、流程与实验统一工作区</p>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <span id="connectionBadge" class="badge text-bg-secondary" data-i18n="status.disconnected">未连接</span>
+      <small id="backendTarget">http://127.0.0.1:8890</small>
+      <span id="runStateBadge" class="badge text-bg-dark ms-1" data-i18n="status.idle">空闲</span>
+      <span id="activeExperimentName" class="badge text-bg-info ms-1 active-experiment-name" hidden></span>
+    </div>
+
+    <div class="action-group initial-action-host">
+      <button id="startExperimentBtn" type="button" class="btn btn-success btn-sm">
+        <i class="bi bi-play-circle me-1"></i><span data-i18n="actions.startExperiment">启动实验</span>
+      </button>
+      <button id="pauseResumeBtn" type="button" class="btn btn-warning btn-sm" disabled>
+        <i class="bi bi-pause-circle me-1"></i><span id="pauseResumeLabel" data-i18n="actions.pause">暂停</span>
+      </button>
+      <button id="terminateBtn" type="button" class="btn btn-outline-danger btn-sm" disabled>
+        <i class="bi bi-stop-circle me-1"></i><span data-i18n="actions.terminate">终止实验</span>
+      </button>
+      <button id="startPlaybackBtn" type="button" class="btn btn-primary btn-sm">
+        <i class="bi bi-camera-reels me-1"></i><span data-i18n="actions.startPlayback">启动回放</span>
+      </button>
+      <button id="startOfflineTestBtn" type="button" class="btn btn-primary btn-sm" hidden>
+        <i class="bi bi-cpu me-1"></i><span data-i18n="actions.startOfflineTest">启动离线测试</span>
+      </button>
+      <button id="dataManagerBtn" type="button" class="btn btn-outline-info btn-sm" hidden>
+        <i class="bi bi-database-gear me-1"></i><span data-i18n="actions.dataManager">数据管理</span>
+      </button>
+    </div>
+
+    <div class="utility-group">
+      <button id="resetWindowsBtn" type="button" class="btn btn-outline-light btn-sm" title="复原窗口位置" hidden>
+        <i class="bi bi-layout-three-columns me-1"></i>
+        <span data-i18n="actions.resetWindows">复原窗口</span>
+      </button>
+      <button id="lockWindowsBtn" type="button" class="btn btn-outline-light btn-sm" title="锁定窗口移动" hidden>
+        <i class="bi bi-unlock me-1"></i>
+        <span data-i18n="actions.lockWindows">锁定窗口</span>
+      </button>
+      <span id="currentUserBadge" class="badge text-bg-secondary user-badge" hidden></span>
+      <button id="loginNavBtn" type="button" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-person-circle me-1"></i><span data-i18n="auth.login">登录</span>
+      </button>
+      <button id="logoutBtn" type="button" class="btn btn-outline-light btn-sm" hidden>
+        <i class="bi bi-box-arrow-right me-1"></i><span data-i18n="auth.logout">退出</span>
+      </button>
+      <label for="languageSelect" class="visually-hidden">Language</label>
+      <select id="languageSelect" class="form-select form-select-sm">
+        <option value="zh-CN" data-i18n="lang.zh">中文</option>
+        <option value="en-US" data-i18n="lang.en">English</option>
+      </select>
+      <button id="maximizeTrafficBtn" type="button" class="btn btn-outline-light btn-sm" hidden>
+        <i class="bi bi-arrows-fullscreen me-1"></i>
+        <span data-i18n="actions.maximize">最大化</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Workspace ── -->
+  <main id="workspace" class="workspace">
+
+    <section id="homeView" class="main-view">
+      <div class="page-heading">
+        <div>
+          <span class="page-eyebrow">INTEGRATED OPERATIONS CONSOLE</span>
+          <h2>一体化运营控制台</h2>
+          <p>统一查看本地资源、测试数据和实验运行状态。</p>
+        </div>
+        <div class="dashboard-health"><i></i><span><b id="dashboardHealthText">平台服务检查中</b><small id="dashboardUpdatedAt">--</small></span></div>
+      </div>
+
+      <div class="dashboard-metrics">
+        <article class="dashboard-metric metric-cpu"><span><i class="bi bi-cpu-fill"></i></span><div><small>CPU 负载</small><b id="dashboardCpu">--</b><em id="dashboardCpuDetail">-- cores</em></div></article>
+        <article class="dashboard-metric metric-gpu"><span><i class="bi bi-gpu-card"></i></span><div><small>GPU 负载</small><b id="dashboardGpu">--</b><em id="dashboardGpuDetail">-- / -- GB</em></div></article>
+        <article class="dashboard-metric metric-memory"><span><i class="bi bi-memory"></i></span><div><small>内存占用</small><b id="dashboardMemory">--</b><em id="dashboardMemoryDetail">-- / -- GB</em></div></article>
+        <article class="dashboard-metric metric-experiments"><span><i class="bi bi-activity"></i></span><div><small>运行实验</small><b id="dashboardActiveExperiments">0</b><em id="dashboardExperimentDetail">累计 0</em></div></article>
+      </div>
+
+      <div class="dashboard-grid">
+        <section class="dashboard-panel resource-overview">
+          <div class="panel-heading-compact"><div><h3>平台资源占用</h3><p>两秒缓存刷新，不阻塞实验接口</p></div><span>LIVE</span></div>
+          <div class="resource-row"><span><i class="bi bi-cpu"></i> CPU</span><div><i id="dashboardCpuBar"></i></div><b id="dashboardCpuInline">--</b></div>
+          <div class="resource-row"><span><i class="bi bi-gpu-card"></i> GPU</span><div><i id="dashboardGpuBar"></i></div><b id="dashboardGpuInline">--</b></div>
+          <div class="resource-row"><span><i class="bi bi-memory"></i> RAM</span><div><i id="dashboardMemoryBar"></i></div><b id="dashboardMemoryInline">--</b></div>
+          <div class="resource-row"><span><i class="bi bi-device-ssd-fill"></i> Storage</span><div><i id="dashboardStorageBar"></i></div><b id="dashboardStorageInline">--</b></div>
+        </section>
+        <section class="dashboard-panel service-overview">
+          <div class="panel-heading-compact"><div><h3>运行服务</h3><p>交通流与世界模型常驻状态</p></div></div>
+          <div class="service-status-row"><span><i class="bi bi-sign-intersection"></i><b>CityNDE / NeuralNDE</b></span><em class="service-state ready">按实验加载</em></div>
+          <div class="service-status-row"><span><i class="bi bi-film"></i><b>Cosmos Transfer2.5</b></span><em id="dashboardTransferState" class="service-state">检查中</em></div>
+          <div class="service-status-row"><span><i class="bi bi-camera-video"></i><b>Cosmos Dreams</b></span><em id="dashboardDreamsState" class="service-state">检查中</em></div>
+          <div class="service-data-line"><span>场景数据 <b id="dashboardScenarioCount">0</b></span><span>标准场景 <b id="dashboardStandardCount">0</b></span></div>
+        </section>
+      </div>
+
+      <section class="business-workspace">
+        <div class="section-heading"><div><h3>业务工作区</h3><p>按测试任务、测试流程和测试实验组织工作。</p></div></div>
+        <div class="module-grid">
+          <button type="button" class="module-card" data-app-mode="tasks"><i class="bi bi-clipboard2-check-fill"></i><span><b>测试任务管理</b><small>自然交通流测试任务与场景范围</small></span><em>1 个任务</em></button>
+          <button type="button" class="module-card" data-app-mode="workflow"><i class="bi bi-diagram-3-fill"></i><span><b>测试流程编排</b><small>内部 AV、标准场景、评价和参数</small></span><em>创建流程</em></button>
+          <button type="button" class="module-card" data-app-mode="experiments"><i class="bi bi-activity"></i><span><b>实验管理</b><small>运行状态、详情、暂停和回放</small></span><em id="dashboardExperimentCount">0 次</em></button>
+        <button type="button" class="module-card" data-app-mode="data"><i class="bi bi-database-fill"></i><span><b>数据管理</b><small>自然数据、虚拟场景和测试结果</small></span><em id="dashboardDataSize">--</em></button>
+          <button type="button" class="module-card" data-app-mode="security" data-admin-only data-user-management hidden><i class="bi bi-shield-check"></i><span><b data-i18n="nav.security">用户与安全</b><small>暂不启用</small></span></button>
+        </div>
+      </section>
+    </section>
+
+    <section id="tasksView" class="main-view" hidden>
+      <div class="page-heading compact-heading">
+        <div><span class="page-eyebrow">TEST MISSION</span><h2>测试任务管理</h2><p>平台当前提供自然交通流测试任务。</p></div>
+        <button type="button" class="btn btn-primary btn-sm" data-app-mode="workflow"><i class="bi bi-diagram-3 me-1"></i>创建测试流程</button>
+      </div>
+      <div class="task-list">
+        <article class="task-record active">
+          <div class="task-record-icon"><i class="bi bi-sign-intersection-fill"></i></div>
+          <div class="task-record-copy"><span>DW-TASK-0001</span><h3>自然交通流测试</h3><p>在信号化城市道路中生成车辆、行人和非机动车交通流，用于自动驾驶系统闭环评测。</p><div><em>CityNDE</em><em>NeuralNDE</em><em>Cosmos</em><em>安全 / 舒适 / 效率</em></div></div>
+          <div class="task-record-stats"><span><small>标准场景</small><b id="taskStandardScenarioCount">0</b></span><span><small>状态</small><b id="taskAvailability">检查中</b></span><button type="button" class="btn btn-outline-primary btn-sm" data-app-mode="workflow">编排流程</button></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="workflowView" class="main-view workflow-view" hidden>
+      <div class="page-heading compact-heading">
+        <div><span class="page-eyebrow">TEST ORCHESTRATION</span><h2>测试流程编排</h2><p>配置被测对象、标准场景、评价体系和实验参数。</p></div>
+        <div class="workflow-actions">
+          <select id="savedWorkflowSelect" class="form-select form-select-sm"><option value="">新建流程</option></select>
+          <button id="loadWorkflowBtn" type="button" class="btn btn-outline-secondary btn-sm" title="加载流程"><i class="bi bi-folder2-open"></i></button>
+          <button id="saveWorkflowBtn" type="button" class="btn btn-outline-primary btn-sm"><i class="bi bi-floppy me-1"></i>保存</button>
+          <button id="copyWorkflowBtn" type="button" class="btn btn-outline-secondary btn-sm" title="复制流程"><i class="bi bi-copy"></i></button>
+          <button id="deleteWorkflowBtn" type="button" class="btn btn-outline-danger btn-sm" title="删除流程"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+
+      <div class="workflow-stepper" aria-label="workflow steps">
+        <button type="button" data-workflow-target="workflowSubject"><span>01</span><i class="bi bi-car-front-fill"></i><b>被测对象</b></button>
+        <button type="button" data-workflow-target="workflowScenario"><span>02</span><i class="bi bi-map-fill"></i><b>场景选择</b></button>
+        <button type="button" data-workflow-target="workflowEvaluation"><span>03</span><i class="bi bi-bar-chart-fill"></i><b>评价体系</b></button>
+        <button type="button" data-workflow-target="workflowParameters"><span>04</span><i class="bi bi-sliders"></i><b>实验参数</b></button>
+        <button type="button" data-workflow-target="workflowMultimodal"><span>05</span><i class="bi bi-camera-video-fill"></i><b>多模态</b></button>
+        <button type="button" data-workflow-target="workflowLaunch"><span>06</span><i class="bi bi-play-fill"></i><b>启动实验</b></button>
+      </div>
+
+      <div class="workflow-scroll">
+        <section id="workflowSubject" class="workflow-section">
+          <div class="workflow-section-heading"><span>01</span><div><h3>被测对象接入</h3><p>内部控制可直接运行；IP/端口接入保留配置但本版本不联调。</p></div><em id="workflowIdBadge" class="workflow-id-badge">系统将在保存时分配 ID</em></div>
+          <div class="workflow-form-grid">
+            <label>流程名称<input id="workflowNameInput" class="form-control form-control-sm" maxlength="80" value="自然交通流低密度验证"></label>
+            <label>控制算法<select id="workflowAvModelSelect" class="form-select form-select-sm"><option value="DEFAULT_TCP">交通流内置默认控制</option><option value="IDM_MOBIL">IDM + MOBIL 内部控制</option><option value="NONE">仅交通流演示（不接入主车控制）</option></select></label>
+            <label>控制动作<select id="workflowCommandModeSelect" class="form-select form-select-sm"><option value="state">轨迹控制（解码为运动状态）</option><option value="actuator">执行器控制（油门 / 制动 / 转向）</option><option value="motion" disabled>运动控制（后续接口映射）</option></select></label>
+            <div class="workflow-connection-block">
+              <span>接口形式</span>
+              <div class="workflow-segmented" role="group" aria-label="被测对象接口形式">
+                <label><input type="radio" name="workflowConnection" value="internal" checked><span>内部调用</span></label>
+                <label class="feature-disabled" title="本版本降低 AV 网络联调优先级"><input type="radio" name="workflowConnection" value="tcp" disabled><span>IP / 端口</span></label>
+              </div>
+              <input id="workflowAvHostInput" class="form-control form-control-sm" value="127.0.0.1" disabled aria-label="AV IP">
+              <input id="workflowAvPortInput" class="form-control form-control-sm" value="10010" disabled aria-label="AV port">
+              <button id="workflowAvConnectionTestBtn" type="button" class="btn btn-sm btn-outline-secondary feature-disabled" disabled title="本版本暂不进行网络 AV 联调"><i class="bi bi-plug"></i><span>连接测试</span></button>
+              <small class="feature-note"><i class="bi bi-info-circle"></i>网络 AV 接入已降级，不影响内部默认控制与 IDM 验证。</small>
+            </div>
+            <div class="observation-options"><span>状态观测</span><label><input id="workflowVehicleStateToggle" type="checkbox" checked> 车辆状态</label><label><input id="workflowMapInfoToggle" type="checkbox" checked> 地图信息</label><label><input id="workflowSignalToggle" type="checkbox" checked> 信号灯信息</label><label><input id="workflowTrafficInfoToggle" type="checkbox" checked> 交通信息</label><label><input type="checkbox" id="workflowCameraToggle" checked> 摄像头 × 1</label><button id="workflowCameraConfigBtn" type="button" class="btn btn-sm btn-outline-secondary"><i class="bi bi-camera me-1"></i>配置摄像头</button><label class="disabled" title="后续版本接入"><input type="checkbox" disabled> 激光雷达</label></div>
+          </div>
+        </section>
+
+        <section id="workflowScenario" class="workflow-section">
+          <div class="workflow-section-heading"><span>02</span><div><h3>场景选择</h3><p>可从地图随机初始化，或直接加载标准场景及其交通参与者轨迹。</p></div><div class="data-view-switch" role="group" aria-label="场景显示方式"><button id="workflowScenarioListBtn" type="button" title="列表视图"><i class="bi bi-list-ul"></i></button><button id="workflowScenarioGridBtn" type="button" class="active" title="窗格视图"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+          <div class="scenario-mode-tabs" role="tablist">
+            <button type="button" class="active" data-workflow-scenario-mode="library"><i class="bi bi-collection-play me-1"></i>标准场景模式</button>
+            <button type="button" data-workflow-scenario-mode="map"><i class="bi bi-map me-1"></i>地图初始化模式</button>
+          </div>
+          <div id="workflowLibraryScenarioPanel" class="workflow-scenario-panel">
+            <div id="standardScenarioGrid" class="standard-scenario-grid"><div class="scenario-loading">正在读取标准场景库...</div></div>
+            <div class="workflow-map-picker">
+              <label>交通流模型<select id="workflowLibraryModelSelect" class="form-select form-select-sm"><option value="cnde">CityNDE</option><option value="neuralnde">NeuralNDE</option><option value="rulebased">IDM 规则（MOBIL 判据）</option></select></label>
+              <label>场景执行方式<select id="workflowScenarioExecutionModeSelect" class="form-select form-select-sm"><option value="continue" selected>首帧续推</option><option value="replay">离线轨迹复现（不推理）</option></select></label>
+              <label>被测对象选择<select id="workflowLibraryAvSelectionSelect" class="form-select form-select-sm"><option value="existing">从当前场景选择</option><option value="manual">初始化后手动选择</option><option value="random">系统随机选择</option></select></label>
+            </div>
+          </div>
+          <div id="workflowMapScenarioPanel" class="workflow-scenario-panel" hidden>
+            <div class="workflow-map-picker">
+              <label>交通流模型<select id="workflowMapModelSelect" class="form-select form-select-sm"><option value="cnde">CityNDE</option><option value="neuralnde">NeuralNDE</option><option value="rulebased">IDM 规则（MOBIL 判据）</option></select></label>
+              <label>高精地图<select id="workflowMapSelect" class="form-select form-select-sm"><option value="">正在读取地图...</option></select></label>
+              <label>初始化方式<select id="workflowMapInitModeSelect" class="form-select form-select-sm"><option value="random_tl_only">随机信号灯</option><option value="random">随机车辆与信号灯</option><option value="empty">空场景</option></select></label>
+              <label>被测对象选择<select id="workflowMapAvSelectionSelect" class="form-select form-select-sm"><option value="manual">初始化后手动选择</option><option value="random">系统随机选择</option></select></label>
+              <button id="workflowMapPreviewBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye me-1"></i>在工作台预览地图</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="workflowEvaluation" class="workflow-section">
+          <div class="workflow-section-heading"><span>03</span><div><h3>评价体系构建</h3><p>当前选用“自然交通流自动驾驶综合评价”，实验结束后自动生成量化报告。</p></div><div class="evaluation-library-actions"><button id="metricLibraryBtn" type="button" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list-check me-1"></i>评价指标库</button><button id="evaluationLibraryBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="bi bi-diagram-2 me-1"></i>评价体系库</button></div></div>
+          <div class="evaluation-summary">
+            <label class="evaluation-weight safety"><span><i class="bi bi-shield-check"></i>安全性</span><input id="workflowSafetyWeight" type="number" min="0" max="100" value="45"><small>% · 碰撞、TTC、违规率</small></label>
+            <label class="evaluation-weight comfort"><span><i class="bi bi-activity"></i>舒适性</span><input id="workflowComfortWeight" type="number" min="0" max="100" value="25"><small>% · 加速度、加加速度</small></label>
+            <label class="evaluation-weight efficiency"><span><i class="bi bi-speedometer2"></i>效率</span><input id="workflowEfficiencyWeight" type="number" min="0" max="100" value="30"><small>% · 平均速度、通行时间</small></label>
+          </div>
+          <div class="evaluation-tree-preview">
+            <span><b>安全性</b><em>碰撞次数 · 最小 TTC · 交通违规率</em></span>
+            <span><b>舒适性</b><em>纵向加速度 · 横向加速度 · 加加速度</em></span>
+            <span><b>效率</b><em>平均速度 · 通行时间 · 停车时间比</em></span>
+          </div>
+        </section>
+
+        <section id="workflowParameters" class="workflow-section">
+          <div class="workflow-section-heading"><span>04</span><div><h3>实验参数</h3><p>默认使用短实验进行快速验收。</p></div></div>
+          <div class="workflow-form-grid four-columns">
+            <label>交通流模型<select id="workflowTrafficModelSelect" class="form-select form-select-sm"><option value="cnde">CityNDE</option><option value="neuralnde">NeuralNDE</option><option value="rulebased">IDM 规则（MOBIL 判据）</option></select></label>
+            <label>仿真时长<input id="workflowDurationInput" type="number" min="10" max="10000" step="5" value="15" class="form-control form-control-sm"><small>秒</small></label>
+            <label>GPU<input id="workflowGpuInput" type="text" value="4" class="form-control form-control-sm"></label>
+            <label>到达率<input id="workflowArrivalRateInput" type="number" min="0" max="1" step="0.0001" value="0.0002" class="form-control form-control-sm"></label>
+            <label>场景次数<input id="workflowScenarioCountInput" type="number" min="1" max="1000" step="1" value="1" class="form-control form-control-sm"></label>
+            <label>随机种子<input id="workflowSeedInput" type="number" min="0" step="1" value="42" class="form-control form-control-sm"></label>
+            <label>车辆尺寸<select id="workflowVehicleSizeSelect" class="form-select form-select-sm"><option value="mixed">混合车型尺寸</option><option value="passenger_only">仅乘用车</option></select></label>
+            <label>初始速度<select id="workflowInitialSpeedSelect" class="form-select form-select-sm"><option value="urban_sampled">城市速度采样</option><option value="citynde">CityNDE 原始初始化</option></select></label>
+            <label>AV附近参与者<input id="workflowLocalTargetInput" type="number" min="1" max="48" step="1" value="16" class="form-control form-control-sm"></label>
+            <label>初始化车辆上限<input id="workflowInitialVehicleLimitInput" type="number" min="1" max="128" step="1" value="18" class="form-control form-control-sm"></label>
+            <label>行人上限<input id="workflowMaxPedestriansInput" type="number" min="0" max="256" step="1" value="8" class="form-control form-control-sm"></label>
+            <label>视频参与者上限<input id="workflowOmniActorLimitInput" type="number" min="1" max="128" step="1" value="16" class="form-control form-control-sm"></label>
+            <label>规则 BV 目标速度<input id="workflowRuleSpeedInput" type="number" min="1" max="35" step="0.5" value="10" class="form-control form-control-sm"><small>m/s，仅规则交通流</small></label>
+            <label>规则 AV 目标速度<input id="workflowAvRuleSpeedInput" type="number" min="1" max="35" step="0.5" value="19.44" class="form-control form-control-sm"><small>m/s，仅 IDM+MOBIL AV</small></label>
+          </div>
+          <div class="workflow-toggles"><label><input id="workflowSaveResultToggle" type="checkbox" checked> 实验结束保存测试结果</label><label><input id="workflowMixedTrafficToggle" type="checkbox" checked> 启用混合交通参与者</label></div>
+        </section>
+
+        <section id="workflowMultimodal" class="workflow-section">
+          <div class="workflow-section-heading"><span>05</span><div><h3>多模态模型配置</h3><p>使用 Transfer1 时间对齐种子与 OmniDreams 实时生成流程。</p></div><em class="workflow-node-state">后台直连</em></div>
+          <div class="workflow-toggles multimodal-toggles"><label><input id="workflowMultimodalToggle" type="checkbox" checked> 启用 Cosmos 多模态视频</label><label><input id="workflowDreamsToggle" type="checkbox" checked> 实时生成 Cosmos Dreams</label><label title="仅当场景记录包含外观首帧时可选"><input id="workflowExistingSeedToggle" type="checkbox" disabled> 加载场景已有首帧，跳过 Transfer 种子</label></div>
+          <div class="workflow-form-grid">
+            <label>首帧生成模型<select id="workflowSeedBackendSelect" class="form-select form-select-sm"><option value="transfer1" selected>Cosmos Transfer1 Sample-AV</option><option value="transfer2.5">Cosmos Transfer2.5 七视角</option></select></label>
+            <label>Transfer/交通流对齐<select id="workflowSeedAlignmentSelect" class="form-select form-select-sm"><option value="terminal_continue" selected>末帧接续（Transfer 末帧 → warmup 末状态）</option><option value="opening_restart">首帧重放（Transfer 第 1 帧 → 交通流初态）</option></select></label>
+          </div>
+          <label class="workflow-prompt-field" for="workflowWorldPromptInput"><span>多模态视频 Prompt</span><textarea id="workflowWorldPromptInput" class="form-control form-control-sm" rows="4">Natural documentary front-facing dashcam footage on a dry charcoal-gray urban road in clear late-morning weather. Render only supplied traffic participants in their mapped lanes, with crisp white lane markings, concrete curbs, correctly scaled crosswalks and traffic lights, mature leafy street trees, clipped green shrubs, and restrained pale-stone and light-gray concrete mid-rise buildings. Soft blue sky and directional natural sunlight create stable shadows, neutral color, and a calm physically grounded atmosphere. Keep road width, horizon, traffic identity, object scale, camera motion, and fine detail temporally consistent.</textarea></label>
+          <div class="multimodal-flow-summary"><span><i class="bi bi-sign-intersection"></i>交通流 0.1 s</span><i class="bi bi-chevron-right"></i><span><i class="bi bi-film"></i>HDMap 控制</span><i class="bi bi-chevron-right"></i><span id="workflowSeedBackendSummary"><i class="bi bi-stars"></i>Transfer1 种子</span><i class="bi bi-chevron-right"></i><span><i class="bi bi-camera-video"></i>OmniDreams 实时视频与控制审计</span></div>
+        </section>
+
+        <section id="workflowLaunch" class="workflow-launch-section">
+          <div><h3>配置完成后启动实验</h3><p id="workflowSummaryText">请选择一个标准场景。</p></div>
+          <div><button id="workflowOpenWorkbenchBtn" type="button" class="btn btn-outline-primary"><i class="bi bi-layout-text-window-reverse me-1"></i>打开实验工作台</button><button id="workflowLaunchBtn" type="button" class="btn btn-primary"><i class="bi bi-play-fill me-1"></i>启动测试实验</button></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="loginView" class="main-view auth-view" hidden>
+      <div class="auth-panel">
+        <div class="auth-card">
+          <h2 data-i18n="auth.loginTitle">登录 TrafficWM</h2>
+          <p data-i18n="auth.loginDesc">登录后可访问实验、数据和管理功能。</p>
+          <label for="loginUsernameInput" class="form-label" data-i18n="auth.username">用户名</label>
+          <input id="loginUsernameInput" type="text" class="form-control form-control-sm mb-2" autocomplete="username" value="admin">
+          <label for="loginPasswordInput" class="form-label" data-i18n="auth.password">密码</label>
+          <input id="loginPasswordInput" type="password" class="form-control form-control-sm mb-3" autocomplete="current-password" placeholder="admin123">
+          <button id="loginSubmitBtn" type="button" class="btn btn-info btn-sm w-100">
+            <i class="bi bi-box-arrow-in-right me-1"></i><span data-i18n="auth.login">登录</span>
+          </button>
+          <small class="text-secondary d-block mt-2" data-i18n="auth.defaultAdminHint">默认管理员：admin / admin123，可通过环境变量覆盖。</small>
+        </div>
+        <div class="auth-card" data-user-management hidden>
+          <h2 data-i18n="auth.registerTitle">注册账号</h2>
+          <p data-i18n="auth.registerDesc">新账号默认具有普通操作权限，管理员可在后台调整角色。</p>
+          <label for="registerUsernameInput" class="form-label" data-i18n="auth.username">用户名</label>
+          <input id="registerUsernameInput" type="text" class="form-control form-control-sm mb-2" autocomplete="username" placeholder="operator01">
+          <label for="registerPasswordInput" class="form-label" data-i18n="auth.password">密码</label>
+          <input id="registerPasswordInput" type="password" class="form-control form-control-sm mb-3" autocomplete="new-password" placeholder="至少 6 位">
+          <button id="registerSubmitBtn" type="button" class="btn btn-outline-info btn-sm w-100">
+            <i class="bi bi-person-plus me-1"></i><span data-i18n="auth.register">注册</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="experimentsView" class="main-view" hidden>
+      <div class="main-view-header">
+        <div>
+          <h2 data-i18n="experiments.title">实验管理</h2>
+          <p data-i18n="experiments.desc">当前版本连接单个 CityNDE 后端实例；列表展示正在运行或等待中的实验。</p>
+        </div>
+        <div class="view-toolbar">
+          <button id="refreshExperimentsBtn" type="button" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="data.refresh">刷新</span>
+          </button>
+          <button id="pauseSelectedExperimentsBtn" type="button" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-pause-circle me-1"></i><span data-i18n="experiments.pauseSelected">批量暂停</span>
+          </button>
+          <button id="terminateSelectedExperimentsBtn" type="button" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-stop-circle me-1"></i><span data-i18n="experiments.terminateSelected">批量终止</span>
+          </button>
+          <button id="deleteSelectedExperimentsBtn" type="button" class="btn btn-sm btn-danger">
+            <i class="bi bi-trash me-1"></i><span data-i18n="experiments.deleteSelected">批量删除</span>
+          </button>
+        </div>
+      </div>
+      <div class="experiment-summary-grid">
+        <article><i class="bi bi-play-circle"></i><span><small>运行中</small><b id="experimentRunningCount">0</b></span></article>
+        <article><i class="bi bi-check2-circle"></i><span><small>已完成</small><b id="experimentCompletedCount">0</b></span></article>
+        <article><i class="bi bi-exclamation-circle"></i><span><small>异常</small><b id="experimentErrorCount">0</b></span></article>
+        <article><i class="bi bi-file-earmark-bar-graph"></i><span><small>可生成报告</small><b id="experimentReportCount">0</b></span></article>
+      </div>
+      <h5 class="management-section-title" data-i18n="experiments.generationSection">场景生成</h5>
+      <div class="table-responsive management-table-wrap mb-3">
+        <table class="table table-dark table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th><input id="generationExperimentSelectAll" type="checkbox" class="form-check-input" data-experiment-select-all="generation"></th>
+              <th data-i18n="experiments.name">实验</th>
+              <th data-i18n="experiments.state">状态</th>
+              <th data-i18n="stats.simTime">仿真时间</th>
+              <th data-i18n="stats.progress">进度</th>
+              <th data-i18n="stats.vehicles">车辆数</th>
+              <th data-i18n="settings.initMode">初始化模式</th>
+              <th data-i18n="settings.gpuId">显卡 ID</th>
+              <th>Port</th>
+              <th data-i18n="experiments.saveFile">保存文件</th>
+              <th class="text-end" data-i18n="data.operations">操作</th>
+            </tr>
+          </thead>
+          <tbody id="generationExperimentRecordsBody" data-experiments-body="generation">
+            <tr><td colspan="11" class="text-secondary" data-i18n="experiments.empty">暂无运行中的实验</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h5 class="management-section-title" data-i18n="experiments.replaySection">场景回放</h5>
+      <div id="replayExperimentTableRecords" class="table-responsive management-table-wrap">
+        <table class="table table-dark table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th><input id="replayExperimentSelectAll" type="checkbox" class="form-check-input" data-experiment-select-all="replay"></th>
+              <th data-i18n="experiments.name">实验</th>
+              <th data-i18n="experiments.state">状态</th>
+              <th data-i18n="stats.simTime">仿真时间</th>
+              <th data-i18n="stats.progress">进度</th>
+              <th data-i18n="stats.vehicles">车辆数</th>
+              <th data-i18n="settings.gpuId">显卡 ID</th>
+              <th>Port</th>
+              <th data-i18n="experiments.scenarioFile">场景文件</th>
+              <th class="text-end" data-i18n="data.operations">操作</th>
+            </tr>
+          </thead>
+          <tbody id="replayExperimentRecordsBody" data-experiments-body="replay">
+            <tr><td colspan="10" class="text-secondary" data-i18n="experiments.emptyReplay">暂无回放实验</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="dataView" class="main-view" hidden>
+      <div class="main-view-header">
+        <div>
+          <h2 data-i18n="data.title">数据管理</h2>
+          <p>统一管理自然数据、虚拟场景、标准场景、地图、测试结果、法规和事故案例。</p>
+        </div>
+        <div class="view-toolbar">
+          <input id="dataUploadInput" type="file" accept=".pkl" multiple hidden>
+          <button id="uploadDataBtn" type="button" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-upload me-1"></i><span data-i18n="data.upload">上传</span>
+          </button>
+          <button id="downloadSelectedDataBtn" type="button" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-download me-1"></i><span data-i18n="data.downloadSelected">批量下载</span>
+          </button>
+          <button id="deleteSelectedDataBtn" type="button" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash me-1"></i><span data-i18n="data.deleteSelected">批量删除</span>
+          </button>
+          <button id="refreshDataViewBtn" type="button" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="data.refresh">刷新</span>
+          </button>
+        </div>
+      </div>
+      <div id="dataCatalogGrid" class="data-catalog-grid">
+        <button type="button" data-data-catalog="natural"><i class="bi bi-database"></i><span><b>自然驾驶数据集</b><small>CityNDE / NeuralNDE 数据索引</small></span><em id="naturalDatasetCount">目录索引</em></button>
+        <button type="button" class="active" data-data-catalog="virtual"><i class="bi bi-sign-intersection"></i><span><b>虚拟场景数据库</b><small>实验生成与上传场景</small></span><em id="virtualScenarioCount">--</em></button>
+        <button type="button" data-data-catalog="standard"><i class="bi bi-collection-play"></i><span><b>标准化场景库</b><small>可复用低密度标准场景</small></span><em id="standardScenarioCount">--</em></button>
+        <button type="button" data-data-catalog="maps"><i class="bi bi-map"></i><span><b>高精地图数据库</b><small>CityNDE / NeuralNDE 地图链接</small></span><em id="mapDatasetCount">--</em></button>
+        <button type="button" data-data-catalog="results"><i class="bi bi-clipboard-data"></i><span><b>测试结果数据库</b><small>实验配置、指标与视频产物</small></span><em id="resultDatasetCount">--</em></button>
+        <button type="button" data-data-catalog="regulations"><i class="bi bi-journal-check"></i><span><b>标准法规库</b><small>可由交通流量化验证的规则</small></span><em>4 条</em></button>
+        <button type="button" data-data-catalog="accidents"><i class="bi bi-exclamation-triangle"></i><span><b>事故案例数据库</b><small>主车事故片段与复盘数据</small></span><em id="accidentDatasetCount">暂无记录</em></button>
+        <button type="button" data-data-catalog="transfer"><i class="bi bi-camera-reels"></i><span><b>Transfer2.5 视频生成</b><small>从数据库片段生成多视角视频</small></span><em>已接入</em></button>
+      </div>
+      <div class="data-catalog-heading">
+        <div><h3 id="dataCatalogTitle">虚拟场景数据库</h3><p id="dataCatalogDescription">实验生成和上传的 CityNDE 场景，可直接回放、下载或截取视频。</p></div>
+        <div class="data-catalog-controls"><div class="data-view-switch" role="group" aria-label="显示方式"><button id="dataListViewBtn" type="button" class="active" title="列表视图"><i class="bi bi-list-ul"></i></button><button id="dataGridViewBtn" type="button" title="窗口视图"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+      </div>
+      <section id="dataStandardBuilderPanel" class="data-transfer-panel" hidden>
+        <div class="data-transfer-heading"><div><h3>生成标准场景</h3><p>从已有 CityNDE 记录截取时间窗，完整保留地图、信号灯及各类参与者轨迹。</p></div><span>可回放</span></div>
+        <div class="data-standard-builder-grid">
+          <label>来源数据库<select id="dataStandardSourceDatabaseSelect" class="form-select form-select-sm"><option value="virtual">虚拟场景数据库</option><option value="results">测试结果数据库</option><option value="accidents">事故案例数据库</option><option value="natural" disabled>自然数据（请导入规范 PKL）</option></select></label>
+          <label>来源场景<select id="dataStandardSourceSelect" class="form-select form-select-sm"></select></label>
+          <label>场景名称<input id="dataStandardNameInput" type="text" maxlength="80" placeholder="例如：行人横穿短场景" class="form-control form-control-sm"></label>
+          <select id="dataStandardCategorySelect" hidden><option value="normal" selected>普通交通</option></select>
+          <label>起始时间<input id="dataStandardStartInput" type="number" min="0" step="0.1" value="0" class="form-control form-control-sm"><small>s</small></label>
+          <label>结束时间<input id="dataStandardEndInput" type="number" min="0.1" max="100" step="0.1" value="15" class="form-control form-control-sm"><small>s</small></label>
+          <label>说明<input id="dataStandardDescriptionInput" type="text" maxlength="160" placeholder="可选" class="form-control form-control-sm"></label>
+          <button id="dataStandardGenerateBtn" type="button" class="btn btn-sm btn-primary"><i class="bi bi-scissors me-1"></i>生成场景</button>
+        </div>
+        <div class="standard-import-row">
+          <input id="dataStandardImportInput" type="file" accept=".pkl" multiple hidden>
+          <label>导入场景地图<select id="dataStandardImportMapSelect" class="form-select form-select-sm"></select></label>
+          <select id="dataStandardImportCategorySelect" hidden><option value="normal" selected>普通交通</option></select>
+          <span>自然数据需先转换为规范 CityNDE recording；批量导入保持完整时间轴，不做截取。</span>
+          <button id="dataStandardImportBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="bi bi-files me-1"></i>批量导入 PKL</button>
+        </div>
+        <div id="standardScenarioProgress" class="progress mt-2" hidden><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%">正在生成并校验场景</div></div>
+        <small id="dataStandardBuilderHint" class="data-transfer-hint">请选择来源和时间段。</small>
+      </section>
+      <section id="dataAccidentPanel" class="data-transfer-panel" hidden>
+        <div class="data-transfer-heading"><div><h3>主车事故候选</h3><p>候选仅来自包含主车的几何碰撞代理事件；保存后生成可回放的独立场景。</p></div><span id="dataAccidentCandidateCount">0 个待确认</span></div>
+        <div id="dataAccidentCandidateList" class="data-accident-list"><div class="scenario-loading">当前没有待确认事故。</div></div>
+      </section>
+      <section id="dataTransferPanel" class="data-transfer-panel" hidden>
+        <div class="data-transfer-heading"><div><h3>多视角 Transfer2.5 片段生成</h3><p>任务提交到原有回放 Transfer 管线；本阶段不进行长视频质量迭代。</p></div><span>已接入</span></div>
+        <div class="data-transfer-grid">
+          <label>数据库<select id="dataTransferDatabaseSelect" class="form-select form-select-sm"><option value="virtual">虚拟场景数据库</option><option value="standard">标准化场景库</option><option value="results">测试结果数据库</option><option value="accidents">事故案例数据库</option></select></label>
+          <label>场景<select id="dataTransferScenarioSelect" class="form-select form-select-sm"></select></label>
+          <label>起始时间<input id="dataTransferStartInput" type="number" min="0" step="0.1" value="0" class="form-control form-control-sm"><small>s</small></label>
+          <label>结束时间<input id="dataTransferEndInput" type="number" min="0.1" step="0.1" value="15" class="form-control form-control-sm"><small>s</small></label>
+          <label>视角<select id="dataTransferViewSelect" class="form-select form-select-sm"><option value="front">主视角</option><option value="all">七视角</option></select></label>
+          <label>采样步数<select id="dataTransferStepsSelect" class="form-select form-select-sm"><option value="20">20 步</option><option value="35" selected>35 步</option></select></label>
+          <button id="dataTransferGenerateBtn" type="button" class="btn btn-sm btn-primary"><i class="bi bi-play-fill me-1"></i>提交生成</button>
+        </div>
+        <small id="dataTransferHint" class="data-transfer-hint">请选择场景和时间段。</small>
+      </section>
+      <div id="dataGridRecords" class="data-record-grid" hidden></div>
+      <div id="dataTableRecords" class="table-responsive management-table-wrap">
+        <table class="table table-dark table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th><input id="dataSelectAll" type="checkbox" class="form-check-input"></th>
+              <th><button type="button" class="table-sort-btn" data-data-sort="algorithm">算法</button></th>
+              <th><button type="button" class="table-sort-btn" data-data-sort="kind">类型</button></th>
+              <th><button type="button" class="table-sort-btn" data-data-sort="path" data-i18n="data.file">文件</button></th>
+              <th><button type="button" class="table-sort-btn" data-data-sort="size" data-i18n="data.size">大小</button></th>
+              <th><button type="button" class="table-sort-btn" data-data-sort="modified" data-i18n="data.modified">修改时间</button></th>
+              <th class="text-end" data-i18n="data.operations">操作</th>
+            </tr>
+          </thead>
+          <tbody id="dataRecordsBodyMain" data-records-body>
+            <tr><td colspan="7" class="text-secondary" data-i18n="data.empty">暂无数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="securityView" class="main-view security-view" data-user-management hidden>
+      <div class="main-view-header">
+        <div>
+          <h2 data-i18n="security.title">用户与安全</h2>
+          <p data-i18n="security.desc">管理员可维护账号角色，并查看高危操作与异常访问日志。</p>
+        </div>
+        <div class="view-toolbar">
+          <button id="refreshSecurityBtn" type="button" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="data.refresh">刷新</span>
+          </button>
+        </div>
+      </div>
+      <div class="security-layout">
+        <section class="security-panel">
+          <div class="security-panel-header">
+            <h5 data-i18n="security.users">用户管理</h5>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <label for="adminNewUsernameInput" class="form-label" data-i18n="auth.username">用户名</label>
+              <input id="adminNewUsernameInput" type="text" class="form-control form-control-sm" placeholder="operator01">
+            </div>
+            <div class="col-md-3">
+              <label for="adminNewPasswordInput" class="form-label" data-i18n="auth.password">密码</label>
+              <input id="adminNewPasswordInput" type="password" class="form-control form-control-sm" placeholder="至少 6 位">
+            </div>
+            <div class="col-md-3">
+              <label for="adminNewRoleSelect" class="form-label" data-i18n="security.role">角色</label>
+              <select id="adminNewRoleSelect" class="form-select form-select-sm">
+                <option value="operator" data-i18n="security.role.operator">操作员</option>
+                <option value="viewer" data-i18n="security.role.viewer">观察员</option>
+                <option value="admin" data-i18n="security.role.admin">管理员</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button id="adminCreateUserBtn" type="button" class="btn btn-sm btn-info w-100">
+                <i class="bi bi-person-plus me-1"></i><span data-i18n="security.createUser">创建用户</span>
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive management-table-wrap security-table-wrap">
+            <table class="table table-dark table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th data-i18n="auth.username">用户名</th>
+                  <th data-i18n="security.role">角色</th>
+                  <th data-i18n="security.enabled">启用</th>
+                  <th data-i18n="security.lastLogin">最近登录</th>
+                  <th class="text-end" data-i18n="data.operations">操作</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersBody">
+                <tr><td colspan="5" class="text-secondary" data-i18n="security.noUsers">暂无用户</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section class="security-panel">
+          <div class="security-panel-header">
+            <h5 data-i18n="security.events">安全日志</h5>
+            <select id="securityEventFilter" class="form-select form-select-sm">
+              <option value="" data-i18n="security.allEvents">全部日志</option>
+              <option value="high_risk" data-i18n="security.highRisk">高危操作</option>
+              <option value="abnormal_access" data-i18n="security.abnormalAccess">异常访问</option>
+              <option value="auth" data-i18n="security.authEvents">登录注册</option>
+              <option value="user_admin" data-i18n="security.userAdminEvents">用户管理</option>
+            </select>
+          </div>
+          <div class="table-responsive management-table-wrap security-table-wrap">
+            <table class="table table-dark table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th data-i18n="security.time">时间</th>
+                  <th data-i18n="security.category">类型</th>
+                  <th data-i18n="security.action">动作</th>
+                  <th data-i18n="auth.username">用户</th>
+                  <th>IP</th>
+                  <th data-i18n="security.details">详情</th>
+                </tr>
+              </thead>
+              <tbody id="securityEventsBody">
+                <tr><td colspan="6" class="text-secondary" data-i18n="security.noEvents">暂无日志</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- LEFT: Settings -->
+    <section id="settingsWindow" class="window-card settings-window" aria-label="settings-window" hidden>
+      <div class="window-header drag-handle">
+        <div class="window-title"><i class="bi bi-sliders2-vertical"></i><span data-i18n="window.settings">设置窗口</span></div>
+        <div class="window-actions">
+          <button type="button" class="window-min-btn btn btn-sm btn-outline-light" data-target="settingsWindow"><i class="bi bi-dash-lg"></i></button>
+        </div>
+      </div>
+      <div class="window-body">
+
+        <!-- Map & Experiment -->
+        <div class="control-block">
+          <h6><i class="bi bi-map me-1"></i><span data-i18n="settings.map">地图与实验</span></h6>
+          <label for="trafficModelSelect" class="form-label" data-i18n="settings.trafficModel">交通流模型</label>
+          <select id="trafficModelSelect" class="form-select form-select-sm mb-2">
+            <option value="" data-i18n="model.none">— 暂无 —</option>
+            <option value="cnde" data-i18n="model.cnde">CityNDE</option>
+            <option value="neuralnde" data-i18n="model.neuralnde">NeuralNDE</option>
+            <option value="rulebased" data-i18n="model.rulebased">IDM + MOBIL Rules</option>
+          </select>
+          <label for="multimodalModelSelect" class="form-label" data-i18n="settings.multimodalModel">多模态模型</label>
+          <select id="multimodalModelSelect" class="form-select form-select-sm mb-2">
+            <option value="none" data-i18n="model.none">— 暂无 —</option>
+            <option value="denseworld" data-i18n="model.denseworld">Cosmos Transfer2.5 + OmniDreams</option>
+          </select>
+          <label for="mapSelect" class="form-label" data-i18n="settings.mapSelect">地图选择</label>
+          <select id="mapSelect" class="form-select form-select-sm mb-1"></select>
+          <label for="initModeSelect" class="form-label mt-2" data-i18n="settings.initMode">初始化模式</label>
+          <select id="initModeSelect" class="form-select form-select-sm mb-1">
+            <option value="random_tl_only" data-i18n="initMode.randomTlOnly">仅随机红绿灯</option>
+            <option value="random" data-i18n="initMode.random">随机车辆与红绿灯</option>
+            <option value="empty" data-i18n="initMode.empty">空场景</option>
+            <option value="data" data-i18n="initMode.data">从数据初始化</option>
+            <option value="data_random_tl" data-i18n="initMode.dataRandomTl">数据车辆 + 随机红绿灯</option>
+          </select>
+          <div id="initDataGroup" class="mt-2" hidden>
+            <label for="initDataSelect" class="form-label" data-i18n="settings.initData">初始化数据文件</label>
+            <select id="initDataSelect" class="form-select form-select-sm"></select>
+          </div>
+          <label for="experimentNameStartInput" class="form-label mt-2" data-i18n="modal.experimentName">实验名称</label>
+          <input id="experimentNameStartInput" type="text" class="form-control form-control-sm mb-1" maxlength="80" placeholder="experiment">
+	          <div class="row g-2 mt-1">
+	            <div class="col-6">
+	              <label for="gpuIdInput" class="form-label" data-i18n="settings.gpuId">显卡 ID</label>
+	              <input id="gpuIdInput" type="text" class="form-control form-control-sm" value="4" placeholder="4">
+	            </div>
+	            <div class="col-6">
+		              <label for="totalStepInput" class="form-label" data-i18n="settings.maxSimTime">仿真时长 (s)</label>
+		              <input id="totalStepInput" type="number" min="1" step="10" value="1000" class="form-control form-control-sm" disabled>
+		            </div>
+		          </div>
+		          <div id="runDurationModeGroup" class="form-check form-switch mt-2">
+		            <input class="form-check-input" type="checkbox" id="runUntilStoppedToggle" checked>
+		            <label class="form-check-label" for="runUntilStoppedToggle" data-i18n="settings.runUntilStopped">运行至手动停止</label>
+		          </div>
+	          <label for="scenarioCountInput" class="form-label mt-2" data-i18n="settings.scenarioCount">仿真场景次数</label>
+	          <input id="scenarioCountInput" type="number" min="1" max="1000" step="1" value="1" class="form-control form-control-sm">
+	          <small id="mapLockHint" class="text-secondary" data-i18n="settings.mapEditable">地图可编辑（未运行）</small>
+	          <div id="carla3dConfig" class="carla-config mt-3">
+	            <div class="form-check form-switch">
+	              <input class="form-check-input" type="checkbox" id="carla3dToggle">
+	              <label class="form-check-label" for="carla3dToggle" data-i18n="carla.enable">启动三维仿真</label>
+	            </div>
+	            <div id="carla3dOptions" class="row g-2 mt-1" hidden>
+	              <div class="col-7">
+	                <label for="carlaQualitySelect" class="form-label" data-i18n="carla.quality">渲染质量</label>
+	                <select id="carlaQualitySelect" class="form-select form-select-sm">
+	                  <option value="Epic" data-i18n="carla.qualityEpic">高质量</option>
+	                  <option value="Low" data-i18n="carla.qualityLow">低负载</option>
+	                </select>
+	              </div>
+	              <div class="col-5">
+	                <label for="carlaGpuInput" class="form-label" data-i18n="carla.gpu">CARLA显卡</label>
+	                <input id="carlaGpuInput" type="number" min="0" step="1" value="1" class="form-control form-control-sm">
+	              </div>
+	            </div>
+	          </div>
+	          <div id="denseWorldConfig" class="denseworld-config mt-3" hidden>
+	            <div class="denseworld-config-title">
+	              <span><i class="bi bi-camera-reels me-1"></i><span data-i18n="world.title">DenseWorld 视频</span></span>
+	              <span class="badge text-bg-dark">1 seed · 1 live</span>
+	            </div>
+	            <div class="row g-2 mt-1">
+	              <div class="col-6">
+		                <label for="worldDurationSelect" class="form-label" data-i18n="world.duration">视频时长</label>
+		                <select id="worldDurationSelect" class="form-select form-select-sm">
+		                  <option value="follow" selected data-i18n="world.durationFollow">跟随交通流</option>
+		                  <option value="10">10 s</option>
+		                  <option value="15">15 s</option>
+		                  <option value="30">30 s</option>
+		                  <option value="60">60 s</option>
+			                  <option value="100">100 s</option>
+			                  <option value="200">200 s</option>
+			                  <option value="custom" data-i18n="world.durationCustom">自定义</option>
+			                </select>
+		            </div>
+		              <div class="col-6">
+	                <label for="worldTransferStepsSelect" class="form-label" data-i18n="world.quality">Transfer 质量</label>
+	                <select id="worldTransferStepsSelect" class="form-select form-select-sm">
+	                  <option value="8" data-i18n="world.qualityPreview">8 步快速种子</option>
+	                  <option value="20" data-i18n="world.qualityBalanced">20 步平衡</option>
+	                  <option value="35" selected data-i18n="world.qualityFull">35 步</option>
+	                </select>
+		              </div>
+		            </div>
+		            <div id="worldCustomDurationGroup" class="mt-2" hidden>
+		              <label for="worldCustomDurationInput" class="form-label" data-i18n="world.durationCustomSeconds">自定义视频时长 (s)</label>
+		              <input id="worldCustomDurationInput" type="number" min="0.1" step="1" value="300" class="form-control form-control-sm">
+		            </div>
+		            <div class="row g-2 mt-1">
+	              <div class="col-6">
+	                <label for="worldSeedModeSelect" class="form-label" data-i18n="world.seedMode">预热视角</label>
+	                <select id="worldSeedModeSelect" class="form-select form-select-sm">
+	                  <option value="multiview_quality" selected data-i18n="world.seedMultiQuality">七视角联合生成</option>
+	                </select>
+	              </div>
+	              <div class="col-6">
+	                <label for="worldSeedRadiusSelect" class="form-label" data-i18n="world.seedRadius">种子地图范围</label>
+	                <select id="worldSeedRadiusSelect" class="form-select form-select-sm">
+	                  <option value="75">75 m</option>
+	                  <option value="90" selected>90 m</option>
+	                  <option value="120">120 m</option>
+	                </select>
+	              </div>
+	            </div>
+	            <label for="worldSeedImageInput" class="form-label mt-2" data-i18n="world.seedImage">单图锚点（七视角预热不使用）</label>
+	            <input id="worldSeedImageInput" class="form-control form-control-sm" type="text" placeholder="/path/to/front-frame.png">
+	            <div class="form-check form-switch mt-2">
+	              <input class="form-check-input" type="checkbox" id="worldTransferFullToggle">
+	              <label class="form-check-label" for="worldTransferFullToggle" data-i18n="world.enableFullTransfer">生成完整时长 Transfer 成片</label>
+	            </div>
+	            <div class="form-check form-switch mt-2">
+	              <input class="form-check-input" type="checkbox" id="worldDreamsToggle" checked>
+	              <label class="form-check-label" for="worldDreamsToggle" data-i18n="world.enableDreams">生成 OmniDreams 视频</label>
+	            </div>
+	            <label for="worldPromptInput" class="form-label mt-2" data-i18n="world.prompt">场景提示词</label>
+	            <textarea id="worldPromptInput" class="form-control form-control-sm" rows="3">Front-facing photorealistic dashcam footage on a clean, ordinary paved urban road through a signalized intersection in neutral daylight. Render ordinary passenger cars, asphalt, correctly scaled pedestrians and cyclists when supplied, lane markings, crosswalks, curbs, restrained roadside buildings, and only the mapped traffic-signal poles. Keep road width, horizon, object scale, and camera calibration locked to the supplied geometry.</textarea>
+	          </div>
+	        </div>
+
+        <!-- Display Controls -->
+        <div id="displayControlBlock" class="control-block">
+          <h6><i class="bi bi-eye me-1"></i><span data-i18n="settings.display">显示控制</span></h6>
+          <div class="form-check form-switch mb-1">
+            <input class="form-check-input" type="checkbox" id="showTrajectoryToggle">
+            <label class="form-check-label" for="showTrajectoryToggle" data-i18n="settings.showTrajectory">显示轨迹</label>
+          </div>
+          <div class="form-check form-switch mb-1">
+            <input class="form-check-input" type="checkbox" id="showFutureTrajectoryToggle">
+            <label class="form-check-label" for="showFutureTrajectoryToggle" data-i18n="settings.showFutureTrajectory">显示预测轨迹</label>
+          </div>
+          <div class="form-check form-switch mb-1">
+            <input class="form-check-input" type="checkbox" id="showPastTrajectoryToggle">
+            <label class="form-check-label" for="showPastTrajectoryToggle" data-i18n="settings.showPastTrajectory">显示历史轨迹</label>
+          </div>
+          <label for="historyDurationInput" class="form-label">历史轨迹时长 (s)</label>
+          <input id="historyDurationInput" type="number" min="0.5" step="0.5" value="3.0" class="form-control form-control-sm mb-2">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="showVehicleIdToggle">
+            <label class="form-check-label" for="showVehicleIdToggle" data-i18n="settings.showVehicleId">显示车辆ID</label>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="showTrafficLightToggle" checked>
+            <label class="form-check-label" for="showTrafficLightToggle" data-i18n="settings.showTrafficLight">显示红绿灯</label>
+          </div>
+          <button id="followEgoBtn" type="button" class="btn btn-sm btn-outline-info w-100 mb-2">
+            <i class="bi bi-crosshair me-1"></i><span>跟随主车</span>
+          </button>
+          <button id="viewExperimentConfigBtn" type="button" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="bi bi-file-earmark-text me-1"></i><span>查看实验配置</span>
+          </button>
+          <label for="mapBackgroundColorInput" class="form-label" data-i18n="settings.mapBackground">地图背景色</label>
+          <input id="mapBackgroundColorInput" type="color" value="#d8dde3" class="form-control form-control-color mb-2" title="Map background color">
+        </div>
+
+        <!-- Arrival Rate -->
+        <div class="control-block">
+          <h6><i class="bi bi-speedometer2 me-1"></i><span data-i18n="settings.arrivalRate">入口到达率</span></h6>
+          <label for="laneIdInput" class="form-label" data-i18n="settings.laneId">入口 / Lane ID</label>
+          <input id="laneIdInput" type="text" list="laneIdOptions" class="form-control form-control-sm mb-2" placeholder="all">
+          <datalist id="laneIdOptions"><option value="all"></option></datalist>
+          <label for="arrivalRateInput" class="form-label" data-i18n="settings.rate">到达率 (0–1)</label>
+          <input id="arrivalRateInput" type="number" min="0" max="1" step="0.001" value="0.006" class="form-control form-control-sm mb-2">
+          <button id="applyArrivalRateBtn" type="button" class="btn btn-info btn-sm w-100">
+            <i class="bi bi-send-check me-1"></i><span data-i18n="actions.applyRate">应用到达率</span>
+          </button>
+        </div>
+
+        <!-- Mixed Traffic -->
+        <div id="mixedTrafficBlock" class="control-block">
+          <h6><i class="bi bi-bicycle me-1"></i><span data-i18n="settings.mixedTraffic">混合交通参与者</span></h6>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="mixedTrafficToggle" checked>
+            <label class="form-check-label" for="mixedTrafficToggle" data-i18n="settings.mixedTrafficEnable">启用混合交通</label>
+          </div>
+          <label for="cyclistRatioSelect" class="form-label" data-i18n="settings.cyclistRatio">非机动车比例</label>
+          <select id="cyclistRatioSelect" class="form-select form-select-sm mb-2">
+            <option value="0.04">4%</option>
+            <option value="0.08" selected>8%</option>
+            <option value="0.15">15%</option>
+          </select>
+          <label for="pedestrianDensitySelect" class="form-label" data-i18n="settings.pedestrianDensity">每处斑马线行人数</label>
+          <select id="pedestrianDensitySelect" class="form-select form-select-sm mb-2">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="4">4</option>
+          </select>
+          <label for="vehicleSizeModeSelect" class="form-label" data-i18n="settings.vehicleSizeMode">车辆尺寸分布</label>
+          <select id="vehicleSizeModeSelect" class="form-select form-select-sm mb-2">
+            <option value="mixed" selected data-i18n="mixed.sizeMixed">轿车 / SUV / 厢式车 / 大型车</option>
+            <option value="passenger_only" data-i18n="mixed.sizePassenger">仅标准乘用车</option>
+          </select>
+          <label for="initialSpeedModeSelect" class="form-label" data-i18n="settings.initialSpeedMode">随机初始化车速</label>
+          <select id="initialSpeedModeSelect" class="form-select form-select-sm">
+            <option value="urban_sampled" selected data-i18n="mixed.speedUrban">按车辆类型采样</option>
+            <option value="citynde" data-i18n="mixed.speedCitynde">CityNDE 原始 2 m/s</option>
+          </select>
+        </div>
+
+        <!-- Vehicle Ops -->
+        <div class="control-block">
+          <h6><i class="bi bi-car-front me-1"></i><span data-i18n="settings.vehicleOps">车辆操作</span></h6>
+          <label for="clickMode" class="form-label" data-i18n="settings.clickMode">点击模式</label>
+          <select id="clickMode" class="form-select form-select-sm mb-2">
+            <option value="none" data-i18n="click.none">无</option>
+            <option value="add" data-i18n="click.add">点击增加车辆</option>
+            <option value="delete" data-i18n="click.delete">点击删除车辆</option>
+          </select>
+          <label for="vehicleIdInput" class="form-label">车辆 ID</label>
+          <input id="vehicleIdInput" type="text" list="vehicleIdOptions" class="form-control form-control-sm mb-2" placeholder="选择或输入车辆ID">
+          <datalist id="vehicleIdOptions"></datalist>
+          <div class="row g-2 mb-2">
+            <div class="col-6"><input id="vehicleXInput" type="number" step="0.1" class="form-control form-control-sm" placeholder="X"></div>
+            <div class="col-6"><input id="vehicleYInput" type="number" step="0.1" class="form-control form-control-sm" placeholder="Y"></div>
+            <div class="col-6"><input id="vehicleHeadingInput" type="number" step="1" class="form-control form-control-sm" placeholder="Heading(deg)"></div>
+            <div class="col-6"><input id="vehicleSpeedInput" type="number" step="0.1" min="0" value="2.0" class="form-control form-control-sm" placeholder="Speed"></div>
+          </div>
+          <div id="vehicleOpHint" class="vehicle-op-hint mb-2">选择模式后在地图上操作。</div>
+          <div class="d-flex gap-1">
+            <button id="confirmVehicleOpBtn" type="button" class="btn btn-warning btn-sm flex-fill" disabled>
+              <i class="bi bi-check2-circle me-1"></i><span>确认</span>
+            </button>
+            <button id="cancelVehicleOpBtn" type="button" class="btn btn-outline-secondary btn-sm flex-fill" disabled>
+              <i class="bi bi-x-circle me-1"></i><span>取消</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Infeasible Region -->
+        <div class="control-block feature-disabled" aria-disabled="true" title="当前后端未实现不可行区域约束">
+          <h6><i class="bi bi-sign-no-parking me-1"></i><span data-i18n="settings.infeasibleRegion">不可行区域</span></h6>
+          <label for="regionMode" class="form-label" data-i18n="settings.regionMode">区域编辑模式</label>
+          <select id="regionMode" class="form-select form-select-sm mb-2" disabled>
+            <option value="none" data-i18n="region.none">无</option>
+            <option value="set" data-i18n="region.set">点击设置不可行区域</option>
+            <option value="clear" data-i18n="region.clear">点击取消不可行区域</option>
+          </select>
+          <label for="regionRadiusInput" class="form-label" data-i18n="settings.regionRadius">区域半径 (m)</label>
+          <input id="regionRadiusInput" type="number" min="1" step="1" value="10" class="form-control form-control-sm mb-2" disabled>
+          <div class="d-flex gap-1">
+            <button id="applyRegionByCoordBtn" type="button" class="btn btn-sm btn-outline-warning flex-fill" disabled>
+              <i class="bi bi-plus-square me-1"></i><span data-i18n="actions.setRegion">设置</span>
+            </button>
+            <button id="clearRegionsBtn" type="button" class="btn btn-sm btn-outline-secondary flex-fill" disabled>
+              <i class="bi bi-eraser me-1"></i><span data-i18n="actions.clearRegions">清空</span>
+            </button>
+          </div>
+          <small id="regionHint" class="text-secondary">当前版本未启用，不会向交通流提交区域约束。</small>
+        </div>
+
+        <!-- Replay -->
+        <div class="control-block" id="replayBlock">
+          <h6><i class="bi bi-collection-play me-1"></i><span data-i18n="settings.replay">回放控制</span></h6>
+          <label for="scenarioSelect" class="form-label" data-i18n="settings.scenario">选择场景文件</label>
+          <input id="scenarioSearchInput" type="search" class="form-control form-control-sm mb-2" placeholder="搜索文件">
+          <div class="d-flex gap-1 mb-2">
+            <select id="scenarioSelect" class="form-select form-select-sm flex-grow-1"></select>
+            <button id="refreshScenariosBtn" type="button" class="btn btn-sm btn-outline-secondary" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+          <label for="replaySpeedInput" class="form-label" data-i18n="settings.replaySpeed">回放速度</label>
+          <div class="replay-speed-control mb-2">
+            <input id="replaySpeedSlider" type="range" class="form-range" min="0.1" max="8" step="0.1" value="1">
+            <div class="input-group input-group-sm">
+              <input id="replaySpeedInput" type="number" class="form-control" min="0.1" max="8" step="0.1" value="1">
+              <span class="input-group-text">×</span>
+            </div>
+          </div>
+          <div class="d-flex gap-1">
+            <button id="replayPrevBtn" type="button" class="btn btn-sm btn-outline-light flex-fill"><i class="bi bi-skip-backward-fill"></i></button>
+            <button id="replayPlayBtn" type="button" class="btn btn-sm btn-outline-success flex-fill"><i class="bi bi-play-fill"></i></button>
+            <button id="replayNextBtn" type="button" class="btn btn-sm btn-outline-light flex-fill"><i class="bi bi-skip-forward-fill"></i></button>
+          </div>
+          <div class="transfer-replay-config mt-3 pt-3 border-top border-secondary">
+            <h6 class="mb-2"><i class="bi bi-camera-reels me-1"></i><span data-i18n="replay.transferTitle">Transfer 回放片段</span></h6>
+            <div class="row g-2">
+              <div class="col-6">
+                <label for="transferReplayStartInput" class="form-label" data-i18n="replay.startFrame">起始帧</label>
+                <input id="transferReplayStartInput" type="number" min="0" step="1" value="0" class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label for="transferReplayEndInput" class="form-label" data-i18n="replay.endFrame">结束帧</label>
+                <input id="transferReplayEndInput" type="number" min="1" step="1" value="100" class="form-control form-control-sm">
+              </div>
+              <div class="col-12">
+                <label for="transferReplayStepsSelect" class="form-label" data-i18n="world.quality">Transfer 质量</label>
+                <select id="transferReplayStepsSelect" class="form-select form-select-sm">
+                  <option value="35" data-i18n="world.qualityFull">35 步</option>
+                  <option value="8" data-i18n="world.qualityPreview">8 步预览</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label for="transferReplayViewSelect" class="form-label" data-i18n="replay.views">生成视角</label>
+                <select id="transferReplayViewSelect" class="form-select form-select-sm">
+                  <option value="front" selected data-i18n="replay.frontView">主视角</option>
+                  <option value="multiview" data-i18n="replay.multiView">七视角</option>
+                </select>
+              </div>
+            </div>
+            <small id="transferReplayRangeHint" class="text-secondary d-block mt-2" data-i18n="replay.frameRangeHint">最长 15 秒；起止帧均包含在源窗口中。</small>
+            <button id="generateTransferReplayBtn" type="button" class="btn btn-sm btn-outline-info w-100 mt-2">
+              <i class="bi bi-film me-1"></i><span data-i18n="replay.generateTransfer">生成回放视频</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- AV Access -->
+        <div class="control-block">
+          <h6><i class="bi bi-robot me-1"></i><span data-i18n="settings.avAccess">AV 接入接口</span></h6>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="avAccessToggle">
+            <label class="form-check-label" for="avAccessToggle">接入 AV</label>
+          </div>
+          <label for="avControlModelSelect" class="form-label">AV 控制方式</label>
+          <select id="avControlModelSelect" class="form-select form-select-sm mb-2">
+            <option value="DEFAULT_TCP">默认控制</option>
+            <option value="IDM_MOBIL">IDM + MOBIL（内置）</option>
+            <option value="EXTERNAL_TCP">外部 TCP</option>
+            <option value="VTD_TCP">VTD TCP</option>
+          </select>
+          <div id="avOnlineSelectionGroup" class="mb-2">
+            <label for="avSelectionModeSelect" class="form-label" data-i18n="av.selectionMode">首帧 AV 选择</label>
+            <select id="avSelectionModeSelect" class="form-select form-select-sm">
+              <option value="manual" data-i18n="av.selectionManual">手动点选并确认</option>
+              <option value="random" data-i18n="av.selectionRandom">系统随机选择</option>
+            </select>
+          </div>
+          <div id="avCommandModeGroup" class="mb-2">
+            <label for="avCommandModeSelect" class="form-label" data-i18n="av.commandMode">控制数据类型</label>
+            <select id="avCommandModeSelect" class="form-select form-select-sm">
+              <option value="state" data-i18n="av.commandState">位置 / 速度 / 姿态 / 加速度</option>
+              <option value="actuator" data-i18n="av.commandActuator">油门 / 刹车 / 转向</option>
+            </select>
+          </div>
+          <div id="avTcpParamGroup" class="row g-2 mb-2">
+            <div class="col-7">
+              <label for="avControlHostInput" class="form-label">AV TCP Host</label>
+              <input id="avControlHostInput" type="text" value="127.0.0.1" class="form-control form-control-sm">
+            </div>
+            <div class="col-5">
+              <label for="avControlPortInput" class="form-label">Port</label>
+              <input id="avControlPortInput" type="number" step="1" class="form-control form-control-sm" placeholder="auto">
+            </div>
+          </div>
+          <div id="avEndpointBlock" class="av-endpoint" hidden>
+            <span data-i18n="av.endpoint">控制端点</span>
+            <code id="avEndpointValue">--</code>
+            <small id="avConnectionState" data-i18n="av.disconnected">等待连接</small>
+            <div id="avTelemetry" class="av-telemetry" hidden>
+              <span><i class="bi bi-arrow-left-right"></i><small data-i18n="av.frames">控制帧</small><b id="avCommandFrames">0 / 0</b></span>
+              <span><i class="bi bi-hourglass-split"></i><small data-i18n="av.timeouts">超时</small><b id="avTimeoutFrames">0</b></span>
+              <span><i class="bi bi-stopwatch"></i><small data-i18n="av.latency">延迟</small><b id="avLatencyValue">--</b></span>
+            </div>
+          </div>
+          <div id="vtdParamGroup" class="row g-2">
+            <div class="col-7">
+              <label for="vtdBridgeHostInput" class="form-label">VTD Bridge Host</label>
+              <input id="vtdBridgeHostInput" type="text" value="127.0.0.1" class="form-control form-control-sm">
+            </div>
+            <div class="col-5">
+              <label for="vtdBridgePortInput" class="form-label">Port</label>
+              <input id="vtdBridgePortInput" type="number" step="1" value="10010" class="form-control form-control-sm">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CENTER: Traffic View -->
+    <section id="trafficWindow" class="window-card traffic-window" aria-label="traffic-window" hidden>
+      <div class="window-header drag-handle">
+        <div class="window-title"><i class="bi bi-map"></i><span data-i18n="window.traffic">交通流主窗口</span></div>
+        <div class="window-actions traffic-tools">
+          <span class="zoom-chip"><i class="bi bi-zoom-in"></i><b id="zoomPercent">100%</b></span>
+          <button id="zoomOutBtn" type="button" class="btn btn-sm btn-outline-light" title="Zoom Out"><i class="bi bi-dash-circle"></i></button>
+          <button id="zoomInBtn" type="button" class="btn btn-sm btn-outline-light" title="Zoom In"><i class="bi bi-plus-circle"></i></button>
+          <button id="zoomResetBtn" type="button" class="btn btn-sm btn-outline-light" title="Reset Zoom"><i class="bi bi-arrow-repeat"></i></button>
+          <button type="button" class="window-min-btn btn btn-sm btn-outline-light" data-target="trafficWindow"><i class="bi bi-dash-lg"></i></button>
+        </div>
+      </div>
+      <div class="window-body traffic-body">
+        <div id="trafficViewport" class="traffic-viewport">
+          <canvas id="trafficCanvas"></canvas>
+          <div id="selectedVehiclePanel" class="selected-vehicle-panel" hidden>
+            <div class="selected-title">
+              <span><i class="bi bi-crosshair me-1"></i><span data-i18n="vehicle.selected">选中车辆</span></span>
+              <button id="clearSelectedVehicleBtn" type="button" class="btn btn-sm btn-outline-light"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div id="selectedVehicleData" class="selected-data"></div>
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" type="checkbox" id="followVehicleToggle">
+              <label class="form-check-label" for="followVehicleToggle" data-i18n="vehicle.follow">跟随车辆</label>
+            </div>
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" type="checkbox" id="selectedTrajectoryOnlyToggle">
+              <label class="form-check-label" for="selectedTrajectoryOnlyToggle">仅显示当前车辆轨迹</label>
+            </div>
+          </div>
+          <div id="coordReadout" class="coord-readout">X: --, Y: --</div>
+          <div id="waitingOverlay" class="waiting-overlay" hidden>
+            <div class="waiting-content">
+              <i class="bi bi-hourglass-split waiting-icon"></i>
+              <p id="waitingOverlayText" data-i18n="status.waitingForStart">等待启动实验…</p>
+            </div>
+          </div>
+          <div id="avSelectionPrompt" class="av-selection-prompt" hidden>
+            <div>
+              <b data-i18n="av.selectPrompt">请选择一辆车作为被测 AV</b>
+              <span id="avSelectionValue" data-i18n="av.noSelection">尚未选择</span>
+            </div>
+            <button id="randomSelectAvBtn" type="button" class="btn btn-sm btn-outline-light" title="随机选择">
+              <i class="bi bi-shuffle"></i>
+            </button>
+            <button id="confirmSelectAvBtn" type="button" class="btn btn-sm btn-warning" disabled>
+              <i class="bi bi-check2-circle me-1"></i><span data-i18n="av.confirmSelection">确认 AV</span>
+            </button>
+          </div>
+        </div>
+        <!-- Timeline bar (shown during replay) -->
+        <div id="timelineBar" class="timeline-bar" hidden>
+          <div class="timeline-controls">
+            <button id="tlPrevBtn" type="button" class="btn btn-sm btn-outline-light"><i class="bi bi-skip-backward-fill"></i></button>
+            <button id="tlPlayBtn" type="button" class="btn btn-sm btn-outline-success"><i class="bi bi-play-fill"></i></button>
+            <button id="tlNextBtn" type="button" class="btn btn-sm btn-outline-light"><i class="bi bi-skip-forward-fill"></i></button>
+          </div>
+          <div class="timeline-scrub">
+            <input id="replaySlider" type="range" class="form-range" min="0" max="100" value="0">
+          </div>
+          <span id="replayStepLabel" class="timeline-label">0 / 0</span>
+        </div>
+        <div id="markerBar" class="marker-bar">
+          <button id="addMarkerBtn" type="button" class="btn btn-sm btn-outline-warning" title="在当前时刻添加标记"><i class="bi bi-bookmark-plus"></i></button>
+          <select id="markerSelect" class="form-select form-select-sm"><option value="">暂无标记</option></select>
+          <button id="jumpMarkerBtn" type="button" class="btn btn-sm btn-outline-light" disabled title="跳转到标记"><i class="bi bi-box-arrow-in-right"></i></button>
+          <button id="deleteMarkerBtn" type="button" class="btn btn-sm btn-outline-danger" disabled title="删除标记"><i class="bi bi-trash"></i></button>
+        </div>
+        <div class="traffic-footer">
+          <span id="mapStatusText" class="text-muted" data-i18n="status.mapNotLoaded">地图未加载</span>
+          <span id="runStateText" class="text-muted" data-i18n="status.idle">空闲</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main multimodal surface. Its existing player controls are moved here at startup. -->
+    <section id="multimodalWindow" class="window-card multimodal-window" aria-label="multimodal-window" hidden>
+      <div class="window-header">
+        <div class="window-title"><i class="bi bi-camera-video"></i><span>多模态视频</span></div>
+        <div class="window-actions"><span id="multimodalSyncBadge" class="badge text-bg-secondary">等待视频</span></div>
+      </div>
+      <div id="multimodalVideoHost" class="window-body multimodal-video-host"></div>
+    </section>
+
+    <div id="viewerSplitHandle" class="viewer-split-handle" role="separator" aria-label="调整交通流与视频视图宽度" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="33" tabindex="0" hidden>
+      <span></span>
+    </div>
+
+    <!-- CARLA 3D View -->
+    <section id="carlaWindow" class="window-card carla-window" aria-label="carla-window" hidden>
+      <div class="window-header drag-handle">
+        <div class="window-title">
+          <i class="bi bi-badge-3d"></i>
+          <span data-i18n="carla.windowTitle">CARLA 三维仿真</span>
+          <span id="carlaStatusBadge" class="badge text-bg-secondary">未启动</span>
+        </div>
+        <div class="window-actions">
+          <button id="carlaOverviewBtn" type="button" class="btn btn-sm btn-outline-light" data-i18n-title="carla.overview" title="全局视角">
+            <i class="bi bi-globe2"></i>
+          </button>
+          <button type="button" class="window-max-btn btn btn-sm btn-outline-light" data-target="carlaWindow" data-i18n-title="carla.maximize" title="最大化">
+            <i class="bi bi-arrows-fullscreen"></i>
+          </button>
+          <button type="button" class="window-min-btn btn btn-sm btn-outline-light" data-target="carlaWindow">
+            <i class="bi bi-dash-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="window-body carla-body">
+        <img id="carlaFrame" alt="" draggable="false">
+        <div id="carlaOverlay" class="carla-overlay">
+          <i class="bi bi-hourglass-split"></i>
+          <span id="carlaOverlayText" data-i18n="carla.waiting">正在启动 CARLA 0.9.16…</span>
+        </div>
+        <div class="carla-view-footer">
+          <span id="carlaViewMode" data-i18n="carla.overview">全局视角</span>
+          <span id="carlaFrameRate">-- FPS</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Metrics (tabbed) -->
+    <section id="metricsWindow" class="window-card metrics-window" aria-label="metrics-window" hidden>
+      <div class="window-header drag-handle">
+        <div class="window-title"><i class="bi bi-bar-chart-line"></i><span data-i18n="window.metrics">指标图表</span></div>
+        <div class="window-actions">
+          <button id="metricsCollapseBtn" type="button" class="btn btn-sm btn-outline-light" title="收起指标栏" aria-label="收起指标栏" aria-expanded="true"><i class="bi bi-chevron-right"></i></button>
+        </div>
+      </div>
+      <div class="window-body metrics-body p-0">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs metrics-tabs px-2 pt-2" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-control" data-bs-toggle="tab" data-bs-target="#pane-control" type="button" role="tab">
+              <i class="bi bi-sliders me-1"></i><span>实验控制</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-analysis" data-bs-toggle="tab" data-bs-target="#pane-analysis" type="button" role="tab">
+              <i class="bi bi-graph-up me-1"></i><span>指标图表</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-live" data-bs-toggle="tab" data-bs-target="#pane-live" type="button" role="tab">
+              <i class="bi bi-activity me-1"></i><span data-i18n="tab.live">实时</span>
+            </button>
+          </li>
+        </ul>
+
+        <div class="live-metrics-strip stats-grid" aria-label="实时指标">
+          <div class="stat-card"><span data-i18n="stats.progress">进度</span><b id="statProgress">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.simTime">仿真时间</span><b id="statSimTime">—</b></div>
+          <div class="stat-card"><span>视频时间</span><b id="statVideoTime">—</b></div>
+          <div class="stat-card"><span>同步差</span><b id="statSyncDelta">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.vehicles">车辆数</span><b id="statVehicles">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.avgSpeed">平均速度</span><b id="statAvgSpeed">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.cyclists">非机动车</span><b id="statCyclists">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.pedestrians">行人</span><b id="statPedestrians">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.minTTC">最小TTC</span><b id="statMinTTC">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.arrivalRate">入口到达率</span><b id="statArrivalRate">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.violationRate">违规率</span><b id="statViolationRate">—</b></div>
+          <div class="stat-card"><span>主车</span><b id="statEgoState">—</b></div>
+          <div class="stat-card"><span data-i18n="stats.riskScore">风险度</span><b id="statRisk">—</b></div>
+        </div>
+
+        <div class="tab-content metrics-tab-content">
+
+          <div class="tab-pane fade show active p-2" id="pane-control" role="tabpanel">
+            <div class="control-block mb-2 viewer-layout-control">
+              <label for="viewerLayoutSelect"><i class="bi bi-layout-split me-1"></i>窗口布局</label>
+              <select id="viewerLayoutSelect" class="form-select form-select-sm viewer-layout-select" title="查看窗口布局">
+                <option value="traffic-main">交通流视图</option>
+                <option value="video-main">视频视图</option>
+                <option value="equal" selected>并列视图</option>
+              </select>
+            </div>
+            <div id="viewerExperimentActions" class="viewer-experiment-actions"></div>
+            <div id="viewerControlHost"></div>
+          </div>
+
+          <!-- Live tab -->
+          <div class="tab-pane fade p-2" id="pane-live" role="tabpanel">
+            <div class="chart-stack">
+              <div class="chart-card chart-openable" data-chart-key="speedTrend" role="button" tabindex="0">
+                <h6 data-i18n="charts.speedTrend">平均速度趋势</h6>
+                <div class="chart-wrap"><canvas id="speedChart"></canvas></div>
+              </div>
+              <div class="chart-card chart-openable" data-chart-key="ttcTrend" role="button" tabindex="0">
+                <h6 data-i18n="charts.ttcTrend">最小TTC趋势</h6>
+                <div class="chart-wrap"><canvas id="ttcChart"></canvas></div>
+              </div>
+              <div class="chart-card chart-openable" data-chart-key="arrivalTrend" role="button" tabindex="0">
+                <h6 data-i18n="charts.arrivalTrend">入口到达率趋势</h6>
+                <div class="chart-wrap"><canvas id="arrivalRateChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analysis tab -->
+          <div class="tab-pane fade p-2" id="pane-analysis" role="tabpanel">
+            <div class="analysis-config mb-2">
+              <div class="d-flex gap-2 flex-wrap">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="histSpeedCheck" checked>
+                  <label class="form-check-label" for="histSpeedCheck" data-i18n="hist.speed">速度</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="histTTCCheck" checked>
+                  <label class="form-check-label" for="histTTCCheck" data-i18n="hist.ttc">TTC</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="histHeadwayCheck">
+                  <label class="form-check-label" for="histHeadwayCheck" data-i18n="hist.headway">跟车距离</label>
+                </div>
+              </div>
+            </div>
+            <div id="histSpeedCard" class="chart-card chart-openable mb-2" data-chart-key="histSpeed" role="button" tabindex="0">
+              <h6 data-i18n="hist.speedTitle">速度分布</h6>
+              <div class="chart-wrap"><canvas id="histSpeedChart"></canvas></div>
+            </div>
+            <div id="histTTCCard" class="chart-card chart-openable mb-2" data-chart-key="histTTC" role="button" tabindex="0">
+              <h6 data-i18n="hist.ttcTitle">TTC 分布</h6>
+              <div class="chart-wrap"><canvas id="histTTCChart"></canvas></div>
+            </div>
+            <div id="histHeadwayCard" class="chart-card chart-openable mb-2" data-chart-key="histHeadway" role="button" tabindex="0" hidden>
+              <h6 data-i18n="hist.headwayTitle">跟车距离分布</h6>
+              <div class="chart-wrap"><canvas id="histHeadwayChart"></canvas></div>
+            </div>
+            <div class="chart-card chart-openable mb-2" data-chart-key="accidentRate" role="button" tabindex="0">
+              <h6 data-i18n="charts.accidentRate">事故率估计</h6>
+              <div class="chart-wrap"><canvas id="accidentRateChart"></canvas></div>
+            </div>
+            <div class="chart-card chart-openable mb-2" data-chart-key="violationRate" role="button" tabindex="0">
+              <h6 data-i18n="charts.violationRate">违规率</h6>
+              <div class="chart-wrap"><canvas id="violationRateChart"></canvas></div>
+            </div>
+            <div class="chart-card chart-openable" data-chart-key="accidentVariance" role="button" tabindex="0">
+              <h6 data-i18n="charts.accidentVariance">事故率方差</h6>
+              <div class="chart-wrap"><canvas id="accidentVarianceChart"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Multimodal tab -->
+          <div class="tab-pane fade p-2" id="pane-multimodal" role="tabpanel">
+            <div class="control-block mb-2">
+              <div class="denseworld-service-row mb-2">
+                <span><i class="bi bi-gpu-card me-1"></i>Transfer2.5 <b id="transferServiceBadge" class="badge text-bg-secondary">—</b></span>
+                <span>OmniDreams <b id="dreamsServiceBadge" class="badge text-bg-secondary">—</b></span>
+                <button id="cosmosRestartBtn" type="button" class="btn btn-sm btn-outline-warning ms-auto" data-i18n-title="world.restartCosmos" title="重启 Cosmos 常驻服务">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+              </div>
+              <div class="denseworld-stage-header">
+                <h6 class="mb-0"><i class="bi bi-diagram-3 me-1"></i><span data-i18n="world.pipeline">世界生成流水线</span></h6>
+                <small id="worldStageText">—</small>
+              </div>
+              <div class="progress denseworld-progress my-2" role="progressbar">
+                <div id="worldProgressBar" class="progress-bar bg-info" style="width:0%">0%</div>
+              </div>
+              <ol id="worldStageList" class="denseworld-stage-list mb-0"></ol>
+              <div id="worldErrorText" class="denseworld-error mt-2" hidden></div>
+            </div>
+            <div class="control-block mb-2">
+              <div class="denseworld-stage-header mb-2">
+                <h6 class="mb-0"><i class="bi bi-camera-video me-1"></i><span data-i18n="multimodal.videoPlayer">视频播放器</span></h6>
+                <select id="worldVideoSelect" class="form-select form-select-sm" aria-label="video view"></select>
+              </div>
+              <div id="worldVideoPlaceholder" class="video-placeholder mb-2">
+                <i class="bi bi-film"></i>
+                <span data-i18n="multimodal.noVideo">暂无视频</span>
+              </div>
+              <video id="worldVideoPlayer" class="denseworld-video mb-2" controls playsinline preload="metadata" muted autoplay loop hidden></video>
+              <div class="d-flex gap-1">
+                <button id="worldVideoPlayBtn" type="button" class="btn btn-sm btn-outline-light flex-fill" disabled title="Play"><i class="bi bi-play-fill"></i></button>
+                <button id="worldVideoPauseBtn" type="button" class="btn btn-sm btn-outline-light flex-fill" disabled title="Pause"><i class="bi bi-pause-fill"></i></button>
+                <a id="worldVideoDownloadBtn" class="btn btn-sm btn-outline-light flex-fill disabled" href="#" download title="Download"><i class="bi bi-download"></i></a>
+              </div>
+            </div>
+            <div class="control-block mb-2">
+              <div class="denseworld-stage-header">
+                <h6 class="mb-0"><i class="bi bi-clipboard2-check me-1"></i><span data-i18n="world.qualityReport">一致性与产物</span></h6>
+                <span id="worldQualityBadge" class="badge text-bg-secondary">—</span>
+              </div>
+              <small id="worldQualityText" class="d-block text-warning mt-2" hidden></small>
+              <div id="worldArtifactList" class="denseworld-artifact-list mt-2">
+                <span class="text-secondary" data-i18n="world.noArtifacts">暂无产物</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Natural dataset hierarchy -->
+<div class="modal fade" id="experimentConfigModal" tabindex="-1" aria-labelledby="experimentConfigModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content platform-modal">
+      <div class="modal-header"><div><h5 class="modal-title" id="experimentConfigModalTitle">实验配置</h5><small>当前测试流程的只读生效参数</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"><dl id="experimentConfigBody" class="experiment-config-list"><div><dt>状态</dt><dd>正在读取...</dd></div></dl></div>
+      <div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">关闭</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="mediaPreviewModal" tabindex="-1" aria-labelledby="mediaPreviewModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content platform-modal">
+      <div class="modal-header"><div><h5 class="modal-title" id="mediaPreviewModalTitle">多模态视频预览</h5><small id="mediaPreviewModalSubtitle">正在读取视频产物...</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body media-preview-body">
+        <div id="mediaPreviewLoading" class="scenario-loading">正在载入视频...</div>
+        <video id="mediaPreviewVideo" controls playsinline preload="metadata" hidden></video>
+        <canvas id="mediaPreviewTraffic" hidden></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="naturalDatasetModal" tabindex="-1" aria-labelledby="naturalDatasetModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content platform-modal">
+      <div class="modal-header"><div><h5 class="modal-title" id="naturalDatasetModalTitle">自然驾驶数据集</h5><small id="naturalDatasetWritableHint">正在读取目录...</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="natural-dataset-toolbar">
+          <button id="naturalDatasetUpBtn" type="button" class="btn btn-sm btn-outline-secondary" disabled title="返回上一级"><i class="bi bi-arrow-up"></i></button>
+          <code id="naturalDatasetPath">/</code>
+          <input id="naturalDatasetUploadInput" type="file" webkitdirectory directory multiple hidden>
+          <button id="naturalDatasetUploadBtn" type="button" class="btn btn-sm btn-outline-success" disabled><i class="bi bi-upload me-1"></i>上传目录到此层级</button>
+          <button id="naturalDatasetDownloadBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="bi bi-download me-1"></i>下载当前层级</button>
+        </div>
+        <div class="table-responsive management-table-wrap mt-3">
+          <table class="table table-hover align-middle mb-0"><thead><tr><th>名称</th><th>类型</th><th>大小</th><th>修改时间</th><th class="text-end">操作</th></tr></thead><tbody id="naturalDatasetEntriesBody"><tr><td colspan="5" class="text-secondary">正在读取...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Workflow camera configuration -->
+<div class="modal fade" id="workflowCameraModal" tabindex="-1" aria-labelledby="workflowCameraModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content platform-modal">
+      <div class="modal-header">
+        <div><h5 class="modal-title" id="workflowCameraModalTitle">摄像头状态观测配置</h5><small>当前接入上限为 1 个摄像头</small></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="camera-limit-line"><span><i class="bi bi-camera-video me-1"></i>已配置摄像头</span><div><b id="workflowCameraCount">1 / 1</b><button id="workflowCameraAddBtn" type="button" class="btn btn-sm btn-outline-primary ms-2" disabled><i class="bi bi-plus-lg"></i><span class="visually-hidden">添加摄像头</span></button><button id="workflowCameraDeleteBtn" type="button" class="btn btn-sm btn-outline-danger ms-1"><i class="bi bi-trash"></i><span class="visually-hidden">删除摄像头</span></button></div></div>
+        <div id="workflowCameraConfigRow" class="camera-config-row">
+          <label>配置名称<input id="workflowCameraNameInput" class="form-control form-control-sm" value="前向主摄像头"></label>
+          <label>默认标定<select id="workflowCameraPresetSelect" class="form-select form-select-sm"><option value="front_wide_120">Front Wide · 120° · 1280×720</option><option value="front_90">Front · 90° · 1280×720</option></select></label>
+          <label>内参文件<input id="workflowCameraIntrinsicInput" type="file" accept=".json,.yaml,.yml,.txt" class="form-control form-control-sm"><small id="workflowCameraIntrinsicStatus">使用默认标定</small></label>
+          <label>外参文件<input id="workflowCameraExtrinsicInput" type="file" accept=".json,.yaml,.yml,.txt" class="form-control form-control-sm"><small id="workflowCameraExtrinsicStatus">使用默认标定</small></label>
+        </div>
+        <div class="camera-capability-note"><i class="bi bi-info-circle"></i><span>默认标定可直接使用；上传的内外参随流程持久化，单文件上限 256 KiB。网络传感器流在后续版本联调。</span></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button><button id="workflowCameraSaveBtn" type="button" class="btn btn-sm btn-primary">保存摄像头配置</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Evaluation metric library -->
+<div class="modal fade" id="metricLibraryModal" tabindex="-1" aria-labelledby="metricLibraryModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content platform-modal">
+      <div class="modal-header"><div><h5 class="modal-title" id="metricLibraryModalTitle">评价指标库</h5><small>指标均可由现有交通流状态和轨迹量化计算</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="metric-library-grid">
+          <section><h6><i class="bi bi-shield-check"></i>安全性</h6><dl><dt>碰撞次数</dt><dd>被测车与机动车、行人或非机动车发生几何碰撞的累计次数。</dd><dt>最小 TTC</dt><dd>实验期间被测车预测碰撞时间的最小值，单位秒。</dd><dt>交通违规率</dt><dd>闯红灯、越界和不合规通行事件占有效帧比例。</dd></dl></section>
+          <section><h6><i class="bi bi-activity"></i>舒适性</h6><dl><dt>纵向加速度 RMS</dt><dd>纵向加速度均方根，衡量频繁加减速。</dd><dt>横向加速度 RMS</dt><dd>横向加速度均方根，衡量转向平顺性。</dd><dt>加加速度 P95</dt><dd>加速度变化率绝对值的 95 分位数。</dd></dl></section>
+          <section><h6><i class="bi bi-speedometer2"></i>效率</h6><dl><dt>平均行驶速度</dt><dd>被测车有效运行区间的时间平均速度。</dd><dt>通行时间</dt><dd>完成目标道路或有效实验区间所需时间。</dd><dt>停车时间比</dt><dd>速度低于 0.5 m/s 的时长占有效时长比例。</dd></dl></section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Evaluation system library -->
+<div class="modal fade" id="evaluationLibraryModal" tabindex="-1" aria-labelledby="evaluationLibraryModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content platform-modal">
+      <div class="modal-header"><div><h5 class="modal-title" id="evaluationLibraryModalTitle">评价体系库</h5><small>选择、复制或保存评价体系，再应用到当前测试流程</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="evaluation-library-toolbar">
+          <label>体系库<select id="evaluationSystemSelect" class="form-select form-select-sm"></select></label>
+          <label>体系名称<input id="evaluationSystemNameInput" class="form-control form-control-sm" maxlength="80"></label>
+          <label>说明<input id="evaluationSystemDescriptionInput" class="form-control form-control-sm" maxlength="180"></label>
+          <button id="copyEvaluationSystemBtn" type="button" class="btn btn-sm btn-outline-secondary" title="复制为新的可编辑体系"><i class="bi bi-copy"></i><span class="visually-hidden">复制</span></button>
+          <button id="saveEvaluationSystemBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="bi bi-save me-1"></i>保存到库</button>
+          <button id="deleteEvaluationSystemBtn" type="button" class="btn btn-sm btn-outline-danger" disabled title="系统默认体系不可删除"><i class="bi bi-trash"></i><span class="visually-hidden">删除</span></button>
+        </div>
+        <div class="evaluation-editor-root"><span>综合得分</span><i class="bi bi-diagram-3"></i></div>
+        <div class="evaluation-editor-tree">
+          <section data-evaluation-category="safety"><label><input id="evaluationSafetyEnabled" type="checkbox" checked><b>安全性</b><input id="evaluationSafetyModalWeight" type="number" min="0" max="100" value="45"><em>%</em></label><ul><li><label><input type="checkbox" data-evaluation-metric="av_overlap_frames" checked><span>碰撞次数</span><input type="number" min="0" max="100" value="40" data-evaluation-metric-weight="av_overlap_frames"><em>%</em></label></li><li><label><input type="checkbox" data-evaluation-metric="minimum_ttc" checked><span>最小 TTC</span><input type="number" min="0" max="100" value="40" data-evaluation-metric-weight="minimum_ttc"><em>%</em></label></li><li><label><input type="checkbox" data-evaluation-metric="traffic_violation_rate" checked><span>交通违规率</span><input type="number" min="0" max="100" value="20" data-evaluation-metric-weight="traffic_violation_rate"><em>%</em></label></li></ul></section>
+          <section data-evaluation-category="comfort"><label><input id="evaluationComfortEnabled" type="checkbox" checked><b>舒适性</b><input id="evaluationComfortModalWeight" type="number" min="0" max="100" value="25"><em>%</em></label><ul><li><label><input type="checkbox" data-evaluation-metric="longitudinal_acceleration_rms" checked><span>纵向加速度 RMS</span><input type="number" min="0" max="100" value="34" data-evaluation-metric-weight="longitudinal_acceleration_rms"><em>%</em></label></li><li><label><input type="checkbox" data-evaluation-metric="lateral_acceleration_rms" checked><span>横向加速度 RMS</span><input type="number" min="0" max="100" value="33" data-evaluation-metric-weight="lateral_acceleration_rms"><em>%</em></label></li><li><label><input type="checkbox" data-evaluation-metric="jerk_p95" checked><span>加加速度 P95</span><input type="number" min="0" max="100" value="33" data-evaluation-metric-weight="jerk_p95"><em>%</em></label></li></ul></section>
+          <section data-evaluation-category="efficiency"><label><input id="evaluationEfficiencyEnabled" type="checkbox" checked><b>效率</b><input id="evaluationEfficiencyModalWeight" type="number" min="0" max="100" value="30"><em>%</em></label><ul><li><label><input type="checkbox" data-evaluation-metric="mean_speed" checked><span>平均行驶速度</span><input type="number" min="0" max="100" value="40" data-evaluation-metric-weight="mean_speed"><em>%</em></label></li><li><label><input type="checkbox" data-evaluation-metric="elapsed_time" checked><span>通行时间</span><input type="number" min="0" max="100" value="20" data-evaluation-metric-weight="elapsed_time"><em>%</em></label></li><li><label><input type="checkbox" data-evaluation-metric="stopped_time_ratio" checked><span>停车时间比</span><input type="number" min="0" max="100" value="40" data-evaluation-metric-weight="stopped_time_ratio"><em>%</em></label></li></ul></section>
+        </div>
+        <div id="evaluationWeightHint" class="evaluation-weight-hint">一级权重合计：100% · 各启用类别二级权重需为 100%</div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button><button id="applyEvaluationSystemBtn" type="button" class="btn btn-sm btn-primary">应用到当前流程</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Experiment evaluation report -->
+<div class="modal fade" id="experimentReportModal" tabindex="-1" aria-labelledby="experimentReportModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content platform-modal">
+      <div class="modal-header">
+        <div><h5 class="modal-title" id="experimentReportModalTitle">测试实验报告</h5><small id="experimentReportSubtitle">正在读取量化指标...</small></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="experimentReportBody" class="experiment-report-body"><div class="scenario-loading">正在生成报告...</div></div>
+      </div>
+      <div class="modal-footer">
+        <button id="downloadExperimentReportBtn" type="button" class="btn btn-sm btn-outline-primary" disabled><i class="bi bi-download me-1"></i>下载 JSON</button>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Management Modal -->
+<div class="modal fade" id="dataManagerModal" tabindex="-1" aria-labelledby="dataManagerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-light border-secondary data-modal">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="dataManagerModalLabel">
+          <i class="bi bi-database-gear me-2"></i><span data-i18n="data.title">数据管理</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="data-toolbar">
+          <div>
+            <h6 data-i18n="data.replayDb">回放数据库</h6>
+            <small class="text-secondary" data-i18n="data.replayDbDesc">管理 CityNDE output 目录中的场景回放文件。</small>
+          </div>
+          <button id="refreshDataBtn" type="button" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="data.refresh">刷新</span>
+          </button>
+        </div>
+        <div class="table-responsive data-table-wrap">
+          <table class="table table-dark table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th><input id="dataModalSelectAll" type="checkbox" class="form-check-input"></th>
+                <th><button type="button" class="table-sort-btn" data-data-sort="algorithm">算法</button></th>
+                <th><button type="button" class="table-sort-btn" data-data-sort="kind">类型</button></th>
+                <th><button type="button" class="table-sort-btn" data-data-sort="path" data-i18n="data.file">文件</button></th>
+                <th><button type="button" class="table-sort-btn" data-data-sort="size" data-i18n="data.size">大小</button></th>
+                <th><button type="button" class="table-sort-btn" data-data-sort="modified" data-i18n="data.modified">修改时间</button></th>
+                <th class="text-end" data-i18n="data.operations">操作</th>
+              </tr>
+            </thead>
+            <tbody id="dataRecordsBody" data-records-body>
+              <tr><td colspan="7" class="text-secondary" data-i18n="data.empty">暂无数据</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="appToast" class="toast align-items-center position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true" style="z-index:9999">
+  <div class="d-flex">
+    <div class="toast-body" id="appToastBody"></div>
+    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+</div>
+
+<!-- Experiment completion review -->
+<div class="modal fade" id="experimentCompletionModal" tabindex="-1" aria-labelledby="experimentCompletionModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content platform-modal">
+      <div class="modal-header"><div><h5 class="modal-title" id="experimentCompletionModalTitle">实验结束确认</h5><small id="completionExperimentId">-</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="completion-retention"><input id="completionSaveResultToggle" type="checkbox" checked><span><b>保存到测试结果数据库</b><small>关闭后实验仍保留在实验管理中，但不作为测试结果数据展示。</small></span></label>
+        <div class="completion-section-heading"><b>主车事故候选</b><small>逐项确认是否保存为独立事故场景</small></div>
+        <div id="completionAccidentList" class="completion-accident-list"><div class="scenario-loading">正在检查...</div></div>
+      </div>
+      <div class="modal-footer"><button id="completionReportBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-bar-graph me-1"></i>查看报告</button><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">稍后处理</button><button id="completionConfirmBtn" type="button" class="btn btn-sm btn-primary">保存选择</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Terminate Modal -->
+<div class="modal fade" id="terminateModal" tabindex="-1" aria-labelledby="terminateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="terminateModalLabel" data-i18n="modal.terminateTitle">终止实验</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2" data-i18n="modal.terminateBody">是否保存本次实验数据？</p>
+        <label for="experimentNameInput" class="form-label" data-i18n="modal.experimentName">实验名称</label>
+        <input id="experimentNameInput" type="text" class="form-control form-control-sm" maxlength="80" placeholder="experiment">
+        <div class="form-text text-secondary" data-i18n="modal.experimentNameHint">可选。将用于保存文件名，只保留字母、数字、中文、下划线和短横线。</div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="modal.cancel">取消</button>
+        <button type="button" class="btn btn-outline-danger" id="terminateDiscardBtn" data-i18n="modal.discard">不保存</button>
+        <button type="button" class="btn btn-success" id="terminateSaveBtn" data-i18n="modal.save">保存并终止</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart Modal -->
+<div class="modal fade" id="chartModal" tabindex="-1" aria-labelledby="chartModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark text-light border-secondary chart-modal">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="chartModalTitle" data-i18n="charts.detail">图表详情</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="chart-modal-toolbar">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text" data-i18n="charts.xMin">X最小</span>
+            <input id="chartXMinInput" type="number" step="0.1" class="form-control">
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text" data-i18n="charts.xMax">X最大</span>
+            <input id="chartXMaxInput" type="number" step="0.1" class="form-control">
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text" data-i18n="charts.yMin">Y最小</span>
+            <input id="chartYMinInput" type="number" step="0.1" class="form-control">
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text" data-i18n="charts.yMax">Y最大</span>
+            <input id="chartYMaxInput" type="number" step="0.1" class="form-control">
+          </div>
+          <div id="chartBinSizeGroup" class="input-group input-group-sm">
+            <span class="input-group-text" data-i18n="charts.binSize">分辨率</span>
+            <input id="chartBinSizeInput" type="number" min="0.01" step="0.1" value="0.5" class="form-control">
+          </div>
+          <button id="chartResetBtn" type="button" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="actions.resetChartView">重置视图</span>
+          </button>
+          <button id="chartSaveBtn" type="button" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-download me-1"></i><span data-i18n="actions.saveChart">保存图像</span>
+          </button>
+        </div>
+        <div class="chart-modal-canvas">
+          <canvas id="expandedChartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="app.js?v=20260826-matrix3"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+{
+    "version": "1.0.0",
+    "transport": "HTTP + JSON",
+    "apiPrefix": "/api/v1",
+    "experimentProxy": "/proxy/{experiment_id}/api/v1",
+    "baseUrlFromConfig": "config/backend.config.json",
+    "endpoints": [
+        {
+            "name": "getStatus",
+            "method": "GET",
+            "pathKey": "statusPath",
+            "path": "/api/v1/status",
+            "response": {
+                "step": "number",
+                "vehicles": "number",
+                "paused": "boolean",
+                "arrival_rate": "number (optional)",
+                "avg_speed": "number (optional)"
+            }
+        },
+        {
+            "name": "getMaps",
+            "method": "GET",
+            "pathKey": "mapsPath",
+            "path": "/api/v1/maps",
+            "response": {
+                "ok": "boolean",
+                "maps": "string[]"
+            }
+        },
+        {
+            "name": "getScenarios",
+            "method": "GET",
+            "pathKey": "scenariosPath",
+            "path": "/api/v1/scenarios",
+            "response": {
+                "ok": "boolean",
+                "scenarios": "string[]"
+            }
+        },
+        {
+            "name": "queueAction",
+            "method": "POST",
+            "pathKey": "actionPath",
+            "path": "/api/v1/action",
+            "request": {
+                "type": "string",
+                "payload": "object (depends on type)"
+            },
+            "response": {
+                "ok": "boolean",
+                "message": "string (optional)",
+                "error": "string (optional)"
+            },
+            "actionTypes": [
+                {
+                    "type": "start_experiment",
+                    "payload": {
+                        "map_path": "string",
+                        "backend_model": "cnde | neuralnde",
+                        "init_mode": "random_tl_only | random | empty | data | data_random_tl",
+                        "init_file": "string (required when init_mode is data or data_random_tl)",
+                        "max_sim_time": "number",
+                        "scenario_count": "integer (1-1000; serial scheduler)",
+                        "av_enabled": "boolean",
+                        "av_selection_mode": "manual | random",
+                        "av_control_model": "DEFAULT_TCP | IDM_MOBIL | LEAD_TFV6_STREAM | EXTERNAL_TCP | VTD_TCP",
+                        "av_command_mode": "state | actuator",
+                        "av_control_host": "string",
+                        "av_control_port": "number (optional, auto allocated)",
+                        "mode": "running"
+                    }
+                },
+                {
+                    "type": "select_av",
+                    "payload": {
+                        "vehicle_id": "string | number"
+                    }
+                },
+                {
+                    "type": "random_select_av",
+                    "payload": {}
+                },
+                {
+                    "type": "start_playback",
+                    "payload": {
+                        "map_path": "string",
+                        "mode": "playback"
+                    }
+                },
+                {
+                    "type": "start_transfer_replay",
+                    "payload": {
+                        "scenario": "CityNDE .pkl path",
+                        "start_step": "integer",
+                        "end_step": "integer (inclusive, up to 15 seconds after start_step)",
+                        "world_transfer_steps": "integer",
+                        "world_prompt": "string (optional)"
+                    }
+                },
+                {
+                    "type": "terminate_experiment",
+                    "payload": {
+                        "save_data": "boolean",
+                        "run_state": "running | playback"
+                    }
+                },
+                {
+                    "type": "set_rate",
+                    "payload": {
+                        "lane_id": "string | number",
+                        "prob": "number(0-1)"
+                    }
+                },
+                {
+                    "type": "add_vehicle_manual",
+                    "payload": {
+                        "x": "number",
+                        "y": "number",
+                        "heading": "number",
+                        "speed": "number",
+                        "spawn_mode": "moving | static"
+                    }
+                },
+                {
+                    "type": "remove_vehicle",
+                    "payload": {
+                        "vehicle_id": "string | number"
+                    }
+                },
+                {
+                    "type": "canvas_click",
+                    "payload": {
+                        "click_mode": "spawn | delete | toggle_control",
+                        "click_x": "number",
+                        "click_y": "number",
+                        "scale": "number",
+                        "tx": "number",
+                        "ty": "number",
+                        "image_w": "number",
+                        "image_h": "number"
+                    }
+                },
+                {
+                    "type": "set_infeasible_region",
+                    "payload": {
+                        "x": "number",
+                        "y": "number",
+                        "radius": "number"
+                    },
+                    "support": "reserved"
+                }
+            ]
+        },
+        {
+            "name": "getSimulationBatches",
+            "method": "GET",
+            "path": "/api/v1/batches",
+            "response": {
+                "ok": "boolean",
+                "batches": "simulation batch[]"
+            }
+        },
+        {
+            "name": "getDataRecords",
+            "method": "GET",
+            "pathKey": "dataRecordsPath",
+            "path": "/api/v1/data/scenarios",
+            "response": {
+                "ok": "boolean",
+                "records": [
+                    {
+                        "path": "string",
+                        "size": "number",
+                        "modified": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "queueDataAction",
+            "method": "POST",
+            "pathKey": "dataActionPath",
+            "path": "/api/v1/data/action",
+            "request": {
+                "type": "delete_scenario",
+                "path": "string"
+            },
+            "response": {
+                "ok": "boolean",
+                "message": "string (optional)",
+                "error": "string (optional)"
+            }
+        },
+        {
+            "name": "getFrame",
+            "method": "GET",
+            "pathKey": "framePath",
+            "path": "/api/v1/frame.jpg",
+            "response": "binary image/jpeg"
+        }
+    ]
+}
